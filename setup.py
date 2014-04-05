@@ -24,7 +24,8 @@ def read(*filenames, **kwargs):
             buf.append(f.read())
     return sep.join(buf)
 
-long_description = read('README.txt', 'CHANGES.txt')
+#long_description = read('README.txt', 'CHANGES.txt')
+long_description = 'Test'
 
 class PyTest(TestCommand):
     def finalize_options(self):
@@ -63,7 +64,7 @@ setup(
         'cov-core>=1.7',
         'coverage>=3.7.1',
         'docutils>=0.11',
-        'mock>=1.0.1'
+        'mock>=1.0.1',
         'py>=1.4.20',
         'pytest>=2.5.2',
         'pytest-cov>=1.6',

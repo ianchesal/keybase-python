@@ -20,9 +20,9 @@ import os
 # Knupp who in turn borrowed it from the Flask project.
 import pkg_resources
 try:
-    release = pkg_resources.get_distribution('sandman').version
+    release = pkg_resources.get_distribution('keybase').version
 except pkg_resources.DistributionNotFound:
-    print 'To build the documentation, The distribution information of sandman'
+    print 'To build the documentation, The distribution information of keybase'
     print 'Has to be available.  Either install the package into your'
     print 'development environment or run "setup.py develop" to setup the'
     print 'metadata.  A virtualenv is recommended!'

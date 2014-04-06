@@ -2,6 +2,7 @@
 
 #pylint: disable=R0902
 
+import datetime
 import requests
 import os
 
@@ -9,6 +10,16 @@ KEYBASE_BASE_URL = 'https://keybase.io/_/api/'
 KEYBASE_API_VERSION = '1.0'
 
 class Keybase(object):
+    '''
+    A read-only view of a keybase.io user and their publically available
+    keys. This class allows you to do interesting things with someone's
+    public key data like encrypt a message for them or verify that a message
+    they signed to you was actually signed by them.
+
+    It does not allow you to manipulate the key data in the keybase.io data
+    store in any way. If you want to administer a user's keys please see the
+    KeybaseAdmin class.
+    '''
 
     def __init__(self, username=None):
         '''
@@ -22,11 +33,9 @@ class Keybase(object):
         using the lookup(username) method on the object after you create
         it.
         '''
-        self.__username = None
+        self._username = None
+        self._user_object = None
         self.__lookup_performed = False
-        self.__salt = None
-        self.__session_cookie = None
-        self.__user_object = None
         if username:
             self.lookup(username)
 
@@ -40,19 +49,34 @@ class Keybase(object):
 
     @property
     def username(self):
-        return self.__username
+        return self._username
 
     @property
     def api_version(self):
         return KEYBASE_API_VERSION
 
     @property
-    def salt(self):
-        return self.__salt
+    def is_bound(self):
+        if self._username and self._user_object and self.__lookup_performed:
+            return True
+        return False
 
     @property
-    def session(self):
-        return self.__session_cookie
+    def public_keys(self):
+        '''
+        A tuple of all the available public keys available for this
+        account. An empty tuple is returned if the instance isn't
+        bound to a user or the user has no keys.
+
+        >>> k = Keybase('irc')
+        >>> k.public_keys
+        (u'primary',)
+        '''
+        pkeys = list()
+        if self._user_object:
+            if 'public_keys' in self._user_object:
+                pkeys = self._user_object['public_keys'].keys()
+        return tuple(pkeys)
 
     def _section_getter(self, section, key):
         '''
@@ -79,11 +103,54 @@ class Keybase(object):
         Key not found!
 
         '''
-        if self.__user_object:
-            if section in self.__user_object:
-                if key in self.__user_object[section]:
-                    return self.__user_object[section][key]
+        if self._user_object:
+            if section in self._user_object:
+                if key in self._user_object[section]:
+                    return self._user_object[section][key]
         return None
+
+    def _raise_unbound_error(self, message):
+        '''
+        Raises a KeybaseUnboundInstanceError if the instance isn't currently
+        bound to a real user in the keybase.io data store. Appends message
+        to the error when it's raised.
+        '''
+        if not self.is_bound:
+            raise KeybaseUnboundInstanceError(message)
+
+    def get_public_key(self, keyname='primary'):
+        '''
+        Returns a key named keyname as a KeybasePublicKey object if it exists
+        in the current Keybase instance. Defaults to a key named 'primary' if
+        you opt not to supply a keyname when you call the method.
+
+        >>> k = Keybase('irc')
+        >>> primary_key = k.get_public_key()
+        >>> primary_key.kid
+        u'0101f56ecf27564e5bec1c50250d09efe963cad3138d4dc7f4646c77f6008c1e23cf0a'
+
+        Otherwise it returns None if a key by the name of keyname doesn't
+        exist for this user.
+
+        >>> k.get_public_key('thiskeydoesnotexist')
+
+        If the instance hasn't been bound to a username yet it throws a
+        KeybaseUnboundInstanceError.
+
+        >>> k = Keybase()
+        >>> k.get_public_key()
+        Traceback (most recent call last):
+        ...
+        KeybaseUnboundInstanceError: Unable to fetch public key
+
+        >>>
+        '''
+        self._raise_unbound_error('Unable to fetch public key')
+        key = None
+        if keyname in self.public_keys:
+            key_data = self._user_object['public_keys'][keyname]
+            key = KeybasePublicKey(**key_data)
+        return key
 
     def lookup(self, username):
         '''
@@ -124,7 +191,7 @@ class Keybase(object):
         # be calling this method a second time.
         if self.__lookup_performed:
             raise KeybaseLookupInvalidError(
-                'Keybase object already bound to username \'{}\''.format(self.__username))
+                'Keybase object already bound to username \'{}\''.format(self._username))
         url = KEYBASE_BASE_URL + KEYBASE_API_VERSION + '/user/lookup.json'
         payload = { 'username': username }
         r = requests.get(url, params=payload, timeout=10)
@@ -156,9 +223,34 @@ class Keybase(object):
                 'response': r.text
                 })
         # Initialize this user from the 'them' part of the reponse.
-        self.__user_object = jresponse['them']
-        self.__username = username
+        self._user_object = jresponse['them']
+        self._username = username
         self.__lookup_performed = True
+
+class KeybaseAdmin(Keybase):
+    '''
+    Extends the Keybase class to add adminstrative functions to what the
+    Keybase class can already do. Allowing you to add keys, revoke keys,
+    sign keys and kill all active login sessions for a user.
+
+    In order to use this class you need to be in possession of the login
+    password for the keybase.io account.
+
+    TODO: Implement this class.
+    '''
+
+    def __init__(self, username):
+        Keybase.__init__(self, username)
+        self.__salt = None
+        self.__session_cookie = None
+
+    @property
+    def salt(self):
+        return self.__salt
+
+    @property
+    def session(self):
+        return self.__session_cookie
 
     def _get_salt(self):
         '''
@@ -169,21 +261,18 @@ class Keybase(object):
         The salt is stored in the object instance's _salt property while
         the login session ID is returned by the function.
 
-        If the object has no email and no username property an KeybaseError
-        is thrown. Otherwise the object prefers the username over the
-        email if both are set.
+        If the object has no username property an KeybaseError is thrown.
 
-        >>> k = Keybase(username='irc')
+        >>> k = KeybaseAdmin(username='irc')
         >>> print k.salt
         None
         >>> login_session = k._get_salt()
         >>> print k.salt
         5838c199c1b825a069185d5707302693
         '''
-        if not self.__username:
-            raise KeybaseError('Unable to retrieve salt: no user bound to this class instance')
+        self._raise_unbound_error('Unable to retrieve salt from keybase.io')
         url = KEYBASE_BASE_URL + KEYBASE_API_VERSION + '/getsalt.json'
-        payload = { 'email_or_username': self.__username }
+        payload = { 'email_or_username': self._username }
         r = requests.get(url, params=payload, timeout=10)
         r.raise_for_status()
         jresponse = r.json()
@@ -209,9 +298,98 @@ class Keybase(object):
         If login fails the method throws a KeybaseError with all the details
         for why login failed in the message.
         '''
-        pass
+        self._raise_unbound_error('Unable to log in to keybase.io')
+        login_session = self._get_salt()
+        # TODO: Lots of work here!
+
+class KeybasePublicKey(object):
+    '''
+    A class that represents the public key side of a public/private key pair.
+
+    It is tied very closely to the keybase.io data that's stored for public
+    keys in user profiles in the data store. As such, it's meant to be
+    initialized with a hash that contains the fields seen in a keybase.io
+    public key record.
+
+    >>> key_data = {
+    ... "kid": "0101a55950dc685d1ae098b5e261edc6aa1ac4835e82e5c7eef6aad98c12c4fdaef50a",
+    ... "key_type": 1,
+    ... "bundle": "-----BEGIN PGP PUBLIC KEY BLOCK----- KJ234990jkdjlasdkfj093lkjdkfjol -----END PGP PUBLIC KEY BLOCK-----",
+    ... "mtime": 1396741239,
+    ... "ctime": 1396741239,
+    ... "ukbid": "c783ab0c262f38837d325d8be4e5ae11",
+    ... "key_fingerprint": "ef8febc949b9d15057f6d636102c7b498133f0fd"
+    ... }
+    >>> kpk = KeybasePublicKey(**key_data)
+    >>> kpk.kid == key_data['kid']
+    True
+    >>> kpk.bundle == key_data['bundle']
+    True
+    >>> kpk.key_fingerprint == key_data['key_fingerprint']
+    True
+    >>> print kpk.ctime
+    2014-04-05 16:40:39
+
+    '''
+    def __init__(self, **kwargs):
+        self.__data = dict()
+        for key, value in kwargs.iteritems():
+            if key == 'mtime' or key == 'ctime':
+                self.__data[key] = datetime.datetime.fromtimestamp(int(value))
+            else:
+                self.__data[key] = value
+
+    @property
+    def kid(self):
+        return self.__property_getter('kid')
+
+    @property
+    def key_type(self):
+        return self.__property_getter('key_type')
+
+    @property
+    def bundle(self):
+        return self.__property_getter('bundle')
+
+    @property
+    def mtime(self):
+        return self.__property_getter('mtime')
+
+    @property
+    def ctime(self):
+        return self.__property_getter('ctime')
+
+    @property
+    def ukbid(self):
+        return self.__property_getter('ukbid')
+
+    @property
+    def key_fingerprint(self):
+        return self.__property_getter('key_fingerprint')
+
+    def __property_getter(self, prop):
+        '''
+        Get a random property value from the __data dictionary in the
+        object. Returns the value or None if the property isn't in the
+        dictionary.
+        '''
+        value = None
+        if prop in self.__data:
+            value = self.__data[prop]
+        return value
 
 class KeybaseError(Exception):
+    '''
+    General error class for Keybase errors.
+    '''
+    pass
+
+class KeybaseUnboundInstanceError(Exception):
+    '''
+    Thrown when calling a Keybase object method that requires the object
+    be bound to a real user in the keybase store and the instance hasn't
+    had such a binding established yet.
+    '''
     pass
 
 class KeybaseUserNotFound(Exception):

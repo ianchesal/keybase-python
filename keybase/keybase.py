@@ -117,7 +117,7 @@ class Keybase(object):
         >>> k2.lookup('abcdefghijklmno123')
         Traceback (most recent call last):
         ...
-        KeybaseUserNotFound: User abcdefghijklmno123 not found
+        KeybaseUserNotFound: ('User abcdefghijklmno123 not found', {'url': u'https://keybase.io/_/api/1.0/user/lookup.json?username=abcdefghijklmno123', 'desc': u'missing or invalid input'})
         
         '''
         # If this object is already initialized then the user shouldn't
@@ -130,8 +130,31 @@ class Keybase(object):
         r = requests.get(url, params=payload, timeout=10)
         r.raise_for_status()    
         jresponse = r.json()
+        # Pendantic searching of the status section of the API's JSON
+        # response. We could just leave it up to the 'them' section
+        # existing or not but future API changes may require that we
+        # handle the response differently based on the statue section
+        # in the response and the response codes therein so lets prepare
+        # for that now.
+        if not 'status' in jresponse or not 'name' in jresponse['status']:
+            raise KeybaseError('Malformed API response to user/lookup.json request', {
+                'url': r.url,
+                'response': r.text
+                })
+        if jresponse['status']['name'] == 'NOT_FOUND':
+            raise KeybaseUserNotFound('User {} not found'.format(username), {
+                'url': r.url,
+                })
+        if jresponse['status']['name'] == 'INPUT_ERROR':
+            raise KeybaseUserNotFound('User {} not found'.format(username), {
+                'url': r.url,
+                'desc': jresponse['status']['desc'],
+                })
         if not 'them' in jresponse:
-            raise KeybaseUserNotFound('User {} not found'.format(username))
+            raise KeybaseError('Malformed API response to user/lookup.json request', {
+                'url': r.url,
+                'response': r.text
+                })
         # Initialize this user from the 'them' part of the reponse.
         self.__user_object = jresponse['them']
         self.__username = username

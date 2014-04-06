@@ -18,30 +18,25 @@ class Keybase(object):
         automatically retrieve. If the username doesn't exist a
         KeybaseUserNotFound exception will be raised.
 
-        If you don't supply a username you can initiate a user look by
+        If you don't supply a username you can initiate a user lookup by
         using the lookup(username) method on the object after you create
         it.
         '''
-        self.__username=None
-        self.__lookup_performed=False
-        self.__salt=None
-        self.__session_cookie=None
-        self.__user_object=None
+        self.__username = None
+        self.__lookup_performed = False
+        self.__salt = None
+        self.__session_cookie = None
+        self.__user_object = None
         if username:
             self.lookup(username)
 
     @property
     def name(self):
-        '''
-        >>> k = Keybase('irc')
-        >>> k.name
-        u'Ian Chesal'
-        '''
-        if self.__user_object:
-            if 'profile' in self.__user_object:
-                if 'full_name' in self.__user_object['profile']:
-                    return self.__user_object['profile']['full_name']
-        return None
+        return self._section_getter('profile', 'full_name')
+
+    @property
+    def location(self):
+        return self._section_getter('profile', 'location')
 
     @property
     def username(self):
@@ -59,38 +54,88 @@ class Keybase(object):
     def session(self):
         return self.__session_cookie
 
+    def _section_getter(self, section, key):
+        '''
+        Gets a value from a specific section of the user data object.
+
+        Returns the value if the user data object has been loaded, the
+        section exists in the user data object and the key exists in
+        that section in the user data object:
+
+        >>> k = Keybase('irc')
+        >>> k._section_getter('profile', 'full_name')
+        u'Ian Chesal'
+
+        Otherwise it returns None if the section doesn't exist:
+
+        >>> if not k._section_getter('invalidsectionname', 'full_name'):
+        ...    print 'Section not found!'
+        Section not found!
+
+        Or the key doesn't exist in the section:
+
+        >>> if not k._section_getter('profile', 'invalidkeyname'):
+        ...    print 'Key not found!'
+        Key not found!
+
+        '''
+        if self.__user_object:
+            if section in self.__user_object:
+                if key in self.__user_object[section]:
+                    return self.__user_object[section][key]
+        return None
+
     def lookup(self, username):
         '''
         Looks up a user in the keybase.io public directory and initializes
         this Keybase class instance with the user's public keybase.io
         details.
 
+        >>> k = Keybase()
+        >>> k.username
+        >>> k.lookup('irc')
+        >>> k.username
+        'irc'
+
+        The lookup() method can be called until the first successful user
+        is found in keybase.io. After that, subsequent lookup calls will
+        raise a KeybaseLookupInvalidError exception:
+        
+        >>> k.lookup('ab')
+        Traceback (most recent call last):
+        ...
+        KeybaseLookupInvalidError: Keybase object already bound to username 'irc'
+
         To get the private view of the user you need to authenticate as
         the user using the login() method after successfully looking the
         user up in keybase.io.
 
-        The lookup() method can be called until the first successful user
-        is found in keybase.io. After that, subsequent lookup calls will
-        raise a KeybaseLookupInvalidError exception.
-
         If the user cannot be found a KeybaseUserNotFound exception is
-        raised.
+        raised:
+
+        >>> k2 = Keybase()
+        >>> k2.lookup('abcdefghijklmno123')
+        Traceback (most recent call last):
+        ...
+        KeybaseUserNotFound: User abcdefghijklmno123 not found
+        
         '''
         # If this object is already initialized then the user shouldn't
         # be calling this method a second time.
         if self.__lookup_performed:
             raise KeybaseLookupInvalidError(
                 'Keybase object already bound to username \'{}\''.format(self.__username))
-        url=KEYBASE_BASE_URL + KEYBASE_API_VERSION + '/user/lookup.json'
-        payload={ 'username': username }
-        r=requests.get(url, params=payload, timeout=10)
+        url = KEYBASE_BASE_URL + KEYBASE_API_VERSION + '/user/lookup.json'
+        payload = { 'username': username }
+        r = requests.get(url, params=payload, timeout=10)
         r.raise_for_status()    
-        jresponse=r.json()
+        jresponse = r.json()
         if not 'them' in jresponse:
             raise KeybaseUserNotFound('User {} not found'.format(username))
         # Initialize this user from the 'them' part of the reponse.
         self.__user_object = jresponse['them']
         self.__username = username
+        self.__lookup_performed = True
 
     def _get_salt(self):
         '''
@@ -105,27 +150,25 @@ class Keybase(object):
         is thrown. Otherwise the object prefers the username over the
         email if both are set.
 
-        >>> keybase=Keybase(username='irc')
-        >>> print keybase.salt
+        >>> k = Keybase(username='irc')
+        >>> print k.salt
         None
-        >>> login_session=keybase._get_salt()
-        >>> print keybase.salt
+        >>> login_session = k._get_salt()
+        >>> print k.salt
         5838c199c1b825a069185d5707302693
         '''
         if not self.__username:
             raise KeybaseError('Unable to retrieve salt: no user bound to this class instance')
-        url=KEYBASE_BASE_URL + KEYBASE_API_VERSION + '/getsalt.json'
-        payload={ 'email_or_username': self.__username }
-        r=requests.get(url, params=payload, timeout=10)
-        # Raise a requests.exceptions.HTTPError if the response
-        # was not successful.
+        url = KEYBASE_BASE_URL + KEYBASE_API_VERSION + '/getsalt.json'
+        payload = { 'email_or_username': self.__username }
+        r = requests.get(url, params=payload, timeout=10)
         r.raise_for_status()
-        jresponse=r.json()
+        jresponse = r.json()
         if not 'salt' in jresponse:
             raise KeybaseError('_get_salt(): No salt value returned for login {0}'.format(login_id))
         if not 'login_session' in jresponse:
             raise KeybaseError('_get_salt(): No login_session value returned for login {0}'.format(login_id))
-        self.__salt=jresponse['salt']
+        self.__salt = jresponse['salt']
         return jresponse['login_session']
 
     def login(self, password):

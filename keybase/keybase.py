@@ -327,8 +327,6 @@ class KeybasePublicKey(object):
     True
     >>> kpk.key_fingerprint == key_data['key_fingerprint']
     True
-    >>> print kpk.ctime
-    2014-04-05 16:40:39
 
     '''
     def __init__(self, **kwargs):

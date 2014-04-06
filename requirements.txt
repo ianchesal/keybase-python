@@ -12,3 +12,4 @@ pytest-cov>=1.6
 tox>=1.7.1
 virtualenv>=1.11.4
 wsgiref>=0.1.2
+requests>=2.2.1

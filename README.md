@@ -15,7 +15,7 @@ Keybase has an existing command line written in Node.js as well as [a well docum
 
 ## Documentation
 
-The official documentation for the project can be found here: https://readthedocs.org/projects/keybase-python-api/
+The official documentation for the project can be found here: http://keybase-python-api.readthedocs.org/en/latest/
 
 ### Installation
 

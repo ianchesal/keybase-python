@@ -76,7 +76,8 @@ setup(
         'requests>=2.2.1',
         'tox>=1.7.1',
         'virtualenv>=1.11.4',
-        'wsgiref>=0.1.2'
+        'wsgiref>=0.1.2',
+        'sphinx_rtd_theme>=0.1.6'
     ],
     cmdclass = {'test': Tox},
     author_email = 'ian.chesal@gmail.com',

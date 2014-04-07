@@ -11,4 +11,4 @@ This module provides a class-based interface to the keybase.io API.
 
 from . import keybase
 
-__version__ = '0.1.0'
+__version__ = '0.0.1'

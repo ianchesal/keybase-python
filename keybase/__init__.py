@@ -5,6 +5,8 @@ Keybase is two things.
 2. a protocol (this API) for accessing the directory
 
 This module provides a class-based interface to the keybase.io API.
+
+.. moduleauthor:: Ian Chesal <ian.chesal@gmail.com>
 '''
 
 from . import keybase

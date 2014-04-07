@@ -21,6 +21,21 @@ The official documentation for the project can be found here: https://readthedoc
 
     pip install keybase
 
+NB: I haven't pushed this to PyPI yet so the above doesn't work just quite yet. Soon.
+
+## Examples
+
+See the [test directory](test/) for examples of how to use the keybase Python API to look up users in the keybase data store, encrypt files for them and verify content that the users have signed.
+
+### Get a Users Credentials
+
+	>>> k = Keybase('irc')
+	>>> primary_key = k.get_public_key()
+	>>> primary_key.kid
+	u'0101f56ecf27564e5bec1c50250d09efe963cad3138d4dc7f4646c77f6008c1e23cf0a'
+
+You can use the `ascii` or `bundle` propert on the `primary_key` object in the above example to get an ASCII version of their primary public key, suitable for feeding in to a signature verification or encryption routine.
+
 ## Development
 
 ### Continuous Integration

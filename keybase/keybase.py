@@ -184,7 +184,7 @@ class Keybase(object):
         >>> k2.lookup('abcdefghijklmno123')
         Traceback (most recent call last):
         ...
-        KeybaseUserNotFound: ('User abcdefghijklmno123 not found', {'url': u'https://keybase.io/_/api/1.0/user/lookup.json?username=abcdefghijklmno123', 'desc': u'missing or invalid input'})
+        KeybaseUserNotFound: ('User abcdefghijklmno123 not found', {'url': u'https://keybase.io/_/api/1.0/user/lookup.json?username=abcdefghijklmno123'})
         
         '''
         # If this object is already initialized then the user shouldn't
@@ -215,7 +215,6 @@ class Keybase(object):
         if jresponse['status']['name'] == 'INPUT_ERROR':
             raise KeybaseUserNotFound('User {} not found'.format(username), {
                 'url': r.url,
-                'desc': jresponse['status']['desc'],
                 })
         if not 'them' in jresponse:
             raise KeybaseError('Malformed API response to user/lookup.json request', {
@@ -347,6 +346,10 @@ class KeybasePublicKey(object):
 
     @property
     def bundle(self):
+        return self.__property_getter('bundle')
+
+    @property
+    def ascii(self):
         return self.__property_getter('bundle')
 
     @property

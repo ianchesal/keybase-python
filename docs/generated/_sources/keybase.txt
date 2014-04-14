@@ -8,3 +8,36 @@ Module contents
     :members:
     :undoc-members:
     :show-inheritance:
+
+Keybase
+=======
+
+.. autoclass:: Keybase
+   :members:
+   :show-inheritance:
+
+KeybaseAdmin
+============
+
+.. autoclass:: KeybaseAdmin
+   :members:
+   :show-inheritance:
+
+Errors
+======
+
+.. autoclass:: KeybaseError
+   :members:
+   :show-inheritance:
+
+.. autoclass:: KeybaseUnboundInstanceError
+   :members:
+   :show-inheritance:
+
+.. autoclass:: KeybaseUserNotFound
+   :members:
+   :show-inheritance:
+
+.. autoclass:: KeybaseLookupInvalidError
+   :members:
+   :show-inheritance:

@@ -1,4 +1,11 @@
-'''Python class interface to the keybase.io API.'''
+'''
+.. module:: keybase
+   :platform: Unix, Windows
+   :synopsis: Python class interface to the keybase.io API.
+
+.. moduleauthor:: Ian Chesal <ian.chesal@gmail.com>
+
+'''
 
 #pylint: disable=R0902
 
@@ -16,23 +23,23 @@ class Keybase(object):
     public key data like encrypt a message for them or verify that a message
     they signed to you was actually signed by them.
 
-    It does not allow you to manipulate the key data in the keybase.io data
-    store in any way. If you want to administer a user's keys please see the
-    KeybaseAdmin class.
+    If you supply a username the user's public information will be automatically
+    retrieved. If the username doesn't exist a :mod:`keybase.KeybaseUserNotFound`
+    exception will be raised.
+
+    If you don't supply a username you can initiate a user lookup by
+    using the :func:`keybase.Keybase.lookup` method on the object after you create
+    it.
+
+    .. note::
+
+        It does not allow you to manipulate the key data in the keybase.io data
+        store in any way. If you want to administer a user's keys please see
+        :mod:`keybase.KeybaseAdmin`.
+
     '''
 
     def __init__(self, username=None):
-        '''
-        Create a new, empty instance of a Keybase object.
-
-        If you supply a username the user's public information will be
-        automatically retrieve. If the username doesn't exist a
-        KeybaseUserNotFound exception will be raised.
-
-        If you don't supply a username you can initiate a user lookup by
-        using the lookup(username) method on the object after you create
-        it.
-        '''
         self._username = None
         self._user_object = None
         self.__lookup_performed = False
@@ -41,22 +48,38 @@ class Keybase(object):
 
     @property
     def name(self):
+        '''
+        The full name of the person associated with this Keybase data.
+        '''
         return self._section_getter('profile', 'full_name')
 
     @property
     def location(self):
+        '''
+        The geographical location of the person associated with this Keybase data.
+        '''
         return self._section_getter('profile', 'location')
 
     @property
     def username(self):
+        '''
+        The username of the person associated with this Keybase data.
+        '''
         return self._username
 
     @property
     def api_version(self):
+        '''
+        The Keybase API version in use for this instace.
+        '''
         return KEYBASE_API_VERSION
 
     @property
     def is_bound(self):
+        '''
+        Returns True if this Keybase object instance is bound to a user or
+        False if it has yet to be associated with a specific username.
+        '''
         if self._username and self._user_object and self.__lookup_performed:
             return True
         return False
@@ -64,9 +87,9 @@ class Keybase(object):
     @property
     def public_keys(self):
         '''
-        A tuple of all the available public keys available for this
-        account. An empty tuple is returned if the instance isn't
-        bound to a user or the user has no keys.
+        A tuple of all the public keys available for this account. An empty
+        tuple is returned if the instance isn't bound to a user or the user
+        has no keys.
 
         >>> k = Keybase('irc')
         >>> k.public_keys
@@ -111,18 +134,18 @@ class Keybase(object):
 
     def _raise_unbound_error(self, message):
         '''
-        Raises a KeybaseUnboundInstanceError if the instance isn't currently
-        bound to a real user in the keybase.io data store. Appends message
-        to the error when it's raised.
+        Raises a :mod:`keybase.`KeybaseUnboundInstanceError` if the instance
+        isn't currently bound to a real user in the keybase.io data store.
+        Appends message to the error when it's raised.
         '''
         if not self.is_bound:
             raise KeybaseUnboundInstanceError(message)
 
     def get_public_key(self, keyname='primary'):
         '''
-        Returns a key named keyname as a KeybasePublicKey object if it exists
-        in the current Keybase instance. Defaults to a key named 'primary' if
-        you opt not to supply a keyname when you call the method.
+        Returns a key named keyname as a :mod:`keybase.KeybasePublicKey` object
+        if it exists in the current Keybase instance. Defaults to a key named
+        ``primary`` if you opt not to supply a keyname when you call the method.
 
         >>> k = Keybase('irc')
         >>> primary_key = k.get_public_key()
@@ -135,7 +158,7 @@ class Keybase(object):
         >>> k.get_public_key('thiskeydoesnotexist')
 
         If the instance hasn't been bound to a username yet it throws a
-        KeybaseUnboundInstanceError.
+        :mod:`keybase.KeybaseUnboundInstanceError`.
 
         >>> k = Keybase()
         >>> k.get_public_key()
@@ -166,7 +189,7 @@ class Keybase(object):
 
         The lookup() method can be called until the first successful user
         is found in keybase.io. After that, subsequent lookup calls will
-        raise a KeybaseLookupInvalidError exception:
+        raise a :mod:`keybase.KeybaseLookupInvalidError` exception:
         
         >>> k.lookup('ab')
         Traceback (most recent call last):
@@ -177,8 +200,8 @@ class Keybase(object):
         the user using the login() method after successfully looking the
         user up in keybase.io.
 
-        If the user cannot be found a KeybaseUserNotFound exception is
-        raised:
+        If the user cannot be found a :mod:`keybase.KeybaseUserNotFound`
+        exception is raised:
 
         >>> k2 = Keybase()
         >>> k2.lookup('abcdefghijklmno123')
@@ -228,14 +251,17 @@ class Keybase(object):
 
 class KeybaseAdmin(Keybase):
     '''
-    Extends the Keybase class to add adminstrative functions to what the
-    Keybase class can already do. Allowing you to add keys, revoke keys,
-    sign keys and kill all active login sessions for a user.
+    Extends the :mod:`keybase.Keybase` class to add adminstrative functions
+    to what the Keybase class can already do. Allowing you to add keys,
+    revoke keys, sign keys and kill all active login sessions for a user.
 
     In order to use this class you need to be in possession of the login
     password for the keybase.io account.
 
-    TODO: Implement this class.
+    .. note::
+
+        This class is still not implemented. The documentation you see here
+        is for future reference only.
     '''
 
     def __init__(self, username):
@@ -294,8 +320,8 @@ class KeybaseAdmin(Keybase):
         stored in the instance along with all the user object details returned
         by the API when a login is successful.
 
-        If login fails the method throws a KeybaseError with all the details
-        for why login failed in the message.
+        If login fails the method throws a :mod:`keybase.KeybaseError` with all
+        the details for why login failed in the message.
         '''
         self._raise_unbound_error('Unable to log in to keybase.io')
         login_session = self._get_salt()

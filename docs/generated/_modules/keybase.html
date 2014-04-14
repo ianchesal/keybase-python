@@ -1,0 +1,595 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>keybase &mdash; keybase  documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="keybase  documentation" href="../index.html"/>
+        <link rel="up" title="Module code" href="index.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="../index.html" class="fa fa-home"> keybase</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+        
+            <ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../using_keybase.html">Using Keybase</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../using_keybase.html#the-keybase-class-accessing-public-user-data">The <tt class="docutils literal"><span class="pre">Keybase</span></tt> Class &#8211; Accessing Public User Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../using_keybase.html#the-keybaseadmin-class-manipulating-user-s-public-key-data">The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> Class &#8211; Manipulating User&#8217;s Public Key Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../using_keybase.html#the-keybasepublickey-class-public-key-records-from-the-keybase-io-data-store">The <tt class="docutils literal"><span class="pre">KeybasePublicKey</span></tt> Class &#8211; Public Key Records from the Keybase.io Data Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../using_keybase.html#the-keybase-error-classes">The Keybase Error Classes</a></li>
+</ul>
+</li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">keybase</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="index.html">Module code</a> &raquo;</li>
+      
+    <li>keybase</li>
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            
+  <h1>Source code for keybase</h1><div class="highlight"><pre>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">.. module:: keybase</span>
+<span class="sd">   :platform: Unix, Windows</span>
+<span class="sd">   :synopsis: Python class interface to the keybase.io API.</span>
+
+<span class="sd">.. moduleauthor:: Ian Chesal &lt;ian.chesal@gmail.com&gt;</span>
+
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="c">#pylint: disable=R0902</span>
+
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="n">KEYBASE_BASE_URL</span> <span class="o">=</span> <span class="s">&#39;https://keybase.io/_/api/&#39;</span>
+<span class="n">KEYBASE_API_VERSION</span> <span class="o">=</span> <span class="s">&#39;1.0&#39;</span>
+
+<div class="viewcode-block" id="Keybase"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase">[docs]</a><span class="k">class</span> <span class="nc">Keybase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    A read-only view of a keybase.io user and their publically available</span>
+<span class="sd">    keys. This class allows you to do interesting things with someone&#39;s</span>
+<span class="sd">    public key data like encrypt a message for them or verify that a message</span>
+<span class="sd">    they signed to you was actually signed by them.</span>
+
+<span class="sd">    If you supply a username the user&#39;s public information will be automatically</span>
+<span class="sd">    retrieved. If the username doesn&#39;t exist a :mod:`keybase.KeybaseUserNotFound`</span>
+<span class="sd">    exception will be raised.</span>
+
+<span class="sd">    If you don&#39;t supply a username you can initiate a user lookup by</span>
+<span class="sd">    using the :func:`keybase.Keybase.lookup` method on the object after you create</span>
+<span class="sd">    it.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        It does not allow you to manipulate the key data in the keybase.io data</span>
+<span class="sd">        store in any way. If you want to administer a user&#39;s keys please see</span>
+<span class="sd">        :mod:`keybase.KeybaseAdmin`.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_username</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_user_object</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__lookup_performed</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">if</span> <span class="n">username</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lookup</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Keybase.name"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The full name of the person associated with this Keybase data.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_section_getter</span><span class="p">(</span><span class="s">&#39;profile&#39;</span><span class="p">,</span> <span class="s">&#39;full_name&#39;</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Keybase.location"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.location">[docs]</a>    <span class="k">def</span> <span class="nf">location</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The geographical location of the person associated with this Keybase data.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_section_getter</span><span class="p">(</span><span class="s">&#39;profile&#39;</span><span class="p">,</span> <span class="s">&#39;location&#39;</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Keybase.username"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.username">[docs]</a>    <span class="k">def</span> <span class="nf">username</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The username of the person associated with this Keybase data.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_username</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Keybase.api_version"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.api_version">[docs]</a>    <span class="k">def</span> <span class="nf">api_version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The Keybase API version in use for this instace.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">KEYBASE_API_VERSION</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Keybase.is_bound"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.is_bound">[docs]</a>    <span class="k">def</span> <span class="nf">is_bound</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns True if this Keybase object instance is bound to a user or</span>
+<span class="sd">        False if it has yet to be associated with a specific username.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_username</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_user_object</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">__lookup_performed</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">return</span> <span class="bp">False</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Keybase.public_keys"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.public_keys">[docs]</a>    <span class="k">def</span> <span class="nf">public_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        A tuple of all the public keys available for this account. An empty</span>
+<span class="sd">        tuple is returned if the instance isn&#39;t bound to a user or the user</span>
+<span class="sd">        has no keys.</span>
+
+<span class="sd">        &gt;&gt;&gt; k = Keybase(&#39;irc&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; k.public_keys</span>
+<span class="sd">        (u&#39;primary&#39;,)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">pkeys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_user_object</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s">&#39;public_keys&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_user_object</span><span class="p">:</span>
+                <span class="n">pkeys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_user_object</span><span class="p">[</span><span class="s">&#39;public_keys&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">pkeys</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">_section_getter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">section</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Gets a value from a specific section of the user data object.</span>
+
+<span class="sd">        Returns the value if the user data object has been loaded, the</span>
+<span class="sd">        section exists in the user data object and the key exists in</span>
+<span class="sd">        that section in the user data object:</span>
+
+<span class="sd">        &gt;&gt;&gt; k = Keybase(&#39;irc&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; k._section_getter(&#39;profile&#39;, &#39;full_name&#39;)</span>
+<span class="sd">        u&#39;Ian Chesal&#39;</span>
+
+<span class="sd">        Otherwise it returns None if the section doesn&#39;t exist:</span>
+
+<span class="sd">        &gt;&gt;&gt; if not k._section_getter(&#39;invalidsectionname&#39;, &#39;full_name&#39;):</span>
+<span class="sd">        ...    print &#39;Section not found!&#39;</span>
+<span class="sd">        Section not found!</span>
+
+<span class="sd">        Or the key doesn&#39;t exist in the section:</span>
+
+<span class="sd">        &gt;&gt;&gt; if not k._section_getter(&#39;profile&#39;, &#39;invalidkeyname&#39;):</span>
+<span class="sd">        ...    print &#39;Key not found!&#39;</span>
+<span class="sd">        Key not found!</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_user_object</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">section</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_user_object</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_user_object</span><span class="p">[</span><span class="n">section</span><span class="p">]:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_user_object</span><span class="p">[</span><span class="n">section</span><span class="p">][</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">_raise_unbound_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Raises a :mod:`keybase.`KeybaseUnboundInstanceError` if the instance</span>
+<span class="sd">        isn&#39;t currently bound to a real user in the keybase.io data store.</span>
+<span class="sd">        Appends message to the error when it&#39;s raised.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_bound</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">KeybaseUnboundInstanceError</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Keybase.get_public_key"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.get_public_key">[docs]</a>    <span class="k">def</span> <span class="nf">get_public_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keyname</span><span class="o">=</span><span class="s">&#39;primary&#39;</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns a key named keyname as a :mod:`keybase.KeybasePublicKey` object</span>
+<span class="sd">        if it exists in the current Keybase instance. Defaults to a key named</span>
+<span class="sd">        ``primary`` if you opt not to supply a keyname when you call the method.</span>
+
+<span class="sd">        &gt;&gt;&gt; k = Keybase(&#39;irc&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; primary_key = k.get_public_key()</span>
+<span class="sd">        &gt;&gt;&gt; primary_key.kid</span>
+<span class="sd">        u&#39;0101f56ecf27564e5bec1c50250d09efe963cad3138d4dc7f4646c77f6008c1e23cf0a&#39;</span>
+
+<span class="sd">        Otherwise it returns None if a key by the name of keyname doesn&#39;t</span>
+<span class="sd">        exist for this user.</span>
+
+<span class="sd">        &gt;&gt;&gt; k.get_public_key(&#39;thiskeydoesnotexist&#39;)</span>
+
+<span class="sd">        If the instance hasn&#39;t been bound to a username yet it throws a</span>
+<span class="sd">        :mod:`keybase.KeybaseUnboundInstanceError`.</span>
+
+<span class="sd">        &gt;&gt;&gt; k = Keybase()</span>
+<span class="sd">        &gt;&gt;&gt; k.get_public_key()</span>
+<span class="sd">        Traceback (most recent call last):</span>
+<span class="sd">        ...</span>
+<span class="sd">        KeybaseUnboundInstanceError: Unable to fetch public key</span>
+
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_raise_unbound_error</span><span class="p">(</span><span class="s">&#39;Unable to fetch public key&#39;</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">keyname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">public_keys</span><span class="p">:</span>
+            <span class="n">key_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_user_object</span><span class="p">[</span><span class="s">&#39;public_keys&#39;</span><span class="p">][</span><span class="n">keyname</span><span class="p">]</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">KeybasePublicKey</span><span class="p">(</span><span class="o">**</span><span class="n">key_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">key</span>
+</div>
+<div class="viewcode-block" id="Keybase.lookup"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.lookup">[docs]</a>    <span class="k">def</span> <span class="nf">lookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Looks up a user in the keybase.io public directory and initializes</span>
+<span class="sd">        this Keybase class instance with the user&#39;s public keybase.io</span>
+<span class="sd">        details.</span>
+
+<span class="sd">        &gt;&gt;&gt; k = Keybase()</span>
+<span class="sd">        &gt;&gt;&gt; k.username</span>
+<span class="sd">        &gt;&gt;&gt; k.lookup(&#39;irc&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; k.username</span>
+<span class="sd">        &#39;irc&#39;</span>
+
+<span class="sd">        The lookup() method can be called until the first successful user</span>
+<span class="sd">        is found in keybase.io. After that, subsequent lookup calls will</span>
+<span class="sd">        raise a :mod:`keybase.KeybaseLookupInvalidError` exception:</span>
+<span class="sd">        </span>
+<span class="sd">        &gt;&gt;&gt; k.lookup(&#39;ab&#39;)</span>
+<span class="sd">        Traceback (most recent call last):</span>
+<span class="sd">        ...</span>
+<span class="sd">        KeybaseLookupInvalidError: Keybase object already bound to username &#39;irc&#39;</span>
+
+<span class="sd">        To get the private view of the user you need to authenticate as</span>
+<span class="sd">        the user using the login() method after successfully looking the</span>
+<span class="sd">        user up in keybase.io.</span>
+
+<span class="sd">        If the user cannot be found a :mod:`keybase.KeybaseUserNotFound`</span>
+<span class="sd">        exception is raised:</span>
+
+<span class="sd">        &gt;&gt;&gt; k2 = Keybase()</span>
+<span class="sd">        &gt;&gt;&gt; k2.lookup(&#39;abcdefghijklmno123&#39;)</span>
+<span class="sd">        Traceback (most recent call last):</span>
+<span class="sd">        ...</span>
+<span class="sd">        KeybaseUserNotFound: (&#39;User abcdefghijklmno123 not found&#39;, {&#39;url&#39;: u&#39;https://keybase.io/_/api/1.0/user/lookup.json?username=abcdefghijklmno123&#39;})</span>
+<span class="sd">        </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c"># If this object is already initialized then the user shouldn&#39;t</span>
+        <span class="c"># be calling this method a second time.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__lookup_performed</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">KeybaseLookupInvalidError</span><span class="p">(</span>
+                <span class="s">&#39;Keybase object already bound to username </span><span class="se">\&#39;</span><span class="s">{}</span><span class="se">\&#39;</span><span class="s">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_username</span><span class="p">))</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">KEYBASE_BASE_URL</span> <span class="o">+</span> <span class="n">KEYBASE_API_VERSION</span> <span class="o">+</span> <span class="s">&#39;/user/lookup.json&#39;</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span> <span class="s">&#39;username&#39;</span><span class="p">:</span> <span class="n">username</span> <span class="p">}</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">payload</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>    
+        <span class="n">jresponse</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="c"># Pendantic searching of the status section of the API&#39;s JSON</span>
+        <span class="c"># response. We could just leave it up to the &#39;them&#39; section</span>
+        <span class="c"># existing or not but future API changes may require that we</span>
+        <span class="c"># handle the response differently based on the statue section</span>
+        <span class="c"># in the response and the response codes therein so lets prepare</span>
+        <span class="c"># for that now.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="s">&#39;status&#39;</span> <span class="ow">in</span> <span class="n">jresponse</span> <span class="ow">or</span> <span class="ow">not</span> <span class="s">&#39;name&#39;</span> <span class="ow">in</span> <span class="n">jresponse</span><span class="p">[</span><span class="s">&#39;status&#39;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="n">KeybaseError</span><span class="p">(</span><span class="s">&#39;Malformed API response to user/lookup.json request&#39;</span><span class="p">,</span> <span class="p">{</span>
+                <span class="s">&#39;url&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+                <span class="s">&#39;response&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">text</span>
+                <span class="p">})</span>
+        <span class="k">if</span> <span class="n">jresponse</span><span class="p">[</span><span class="s">&#39;status&#39;</span><span class="p">][</span><span class="s">&#39;name&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;NOT_FOUND&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">KeybaseUserNotFound</span><span class="p">(</span><span class="s">&#39;User {} not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">username</span><span class="p">),</span> <span class="p">{</span>
+                <span class="s">&#39;url&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+                <span class="p">})</span>
+        <span class="k">if</span> <span class="n">jresponse</span><span class="p">[</span><span class="s">&#39;status&#39;</span><span class="p">][</span><span class="s">&#39;name&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;INPUT_ERROR&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">KeybaseUserNotFound</span><span class="p">(</span><span class="s">&#39;User {} not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">username</span><span class="p">),</span> <span class="p">{</span>
+                <span class="s">&#39;url&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+                <span class="p">})</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="s">&#39;them&#39;</span> <span class="ow">in</span> <span class="n">jresponse</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">KeybaseError</span><span class="p">(</span><span class="s">&#39;Malformed API response to user/lookup.json request&#39;</span><span class="p">,</span> <span class="p">{</span>
+                <span class="s">&#39;url&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+                <span class="s">&#39;response&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">text</span>
+                <span class="p">})</span>
+        <span class="c"># Initialize this user from the &#39;them&#39; part of the reponse.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_user_object</span> <span class="o">=</span> <span class="n">jresponse</span><span class="p">[</span><span class="s">&#39;them&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_username</span> <span class="o">=</span> <span class="n">username</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__lookup_performed</span> <span class="o">=</span> <span class="bp">True</span>
+</div></div>
+<div class="viewcode-block" id="KeybaseAdmin"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseAdmin">[docs]</a><span class="k">class</span> <span class="nc">KeybaseAdmin</span><span class="p">(</span><span class="n">Keybase</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Extends the :mod:`keybase.Keybase` class to add adminstrative functions</span>
+<span class="sd">    to what the Keybase class can already do. Allowing you to add keys,</span>
+<span class="sd">    revoke keys, sign keys and kill all active login sessions for a user.</span>
+
+<span class="sd">    In order to use this class you need to be in possession of the login</span>
+<span class="sd">    password for the keybase.io account.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        This class is still not implemented. The documentation you see here</span>
+<span class="sd">        is for future reference only.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="p">):</span>
+        <span class="n">Keybase</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__salt</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__session_cookie</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="KeybaseAdmin.salt"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseAdmin.salt">[docs]</a>    <span class="k">def</span> <span class="nf">salt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__salt</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="KeybaseAdmin.session"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseAdmin.session">[docs]</a>    <span class="k">def</span> <span class="nf">session</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__session_cookie</span>
+</div>
+    <span class="k">def</span> <span class="nf">_get_salt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The first round of the two round Keybase login procedure. This</span>
+<span class="sd">        function gets the salt stored for the user as well as a short-lived</span>
+<span class="sd">        random challenge string in the form of a login session ID.</span>
+
+<span class="sd">        The salt is stored in the object instance&#39;s _salt property while</span>
+<span class="sd">        the login session ID is returned by the function.</span>
+
+<span class="sd">        If the object has no username property an KeybaseError is thrown.</span>
+
+<span class="sd">        &gt;&gt;&gt; k = KeybaseAdmin(username=&#39;irc&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; print k.salt</span>
+<span class="sd">        None</span>
+<span class="sd">        &gt;&gt;&gt; login_session = k._get_salt()</span>
+<span class="sd">        &gt;&gt;&gt; print k.salt</span>
+<span class="sd">        5838c199c1b825a069185d5707302693</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_raise_unbound_error</span><span class="p">(</span><span class="s">&#39;Unable to retrieve salt from keybase.io&#39;</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">KEYBASE_BASE_URL</span> <span class="o">+</span> <span class="n">KEYBASE_API_VERSION</span> <span class="o">+</span> <span class="s">&#39;/getsalt.json&#39;</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span> <span class="s">&#39;email_or_username&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_username</span> <span class="p">}</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">payload</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+        <span class="n">jresponse</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="s">&#39;salt&#39;</span> <span class="ow">in</span> <span class="n">jresponse</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">KeybaseError</span><span class="p">(</span><span class="s">&#39;_get_salt(): No salt value returned for login {0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">login_id</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="s">&#39;login_session&#39;</span> <span class="ow">in</span> <span class="n">jresponse</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">KeybaseError</span><span class="p">(</span><span class="s">&#39;_get_salt(): No login_session value returned for login {0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">login_id</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__salt</span> <span class="o">=</span> <span class="n">jresponse</span><span class="p">[</span><span class="s">&#39;salt&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">jresponse</span><span class="p">[</span><span class="s">&#39;login_session&#39;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="KeybaseAdmin.login"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseAdmin.login">[docs]</a>    <span class="k">def</span> <span class="nf">login</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">password</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Executes a two-round login procedure for a user using the supplied</span>
+<span class="sd">        password to authenticate. The first round involves looking up the</span>
+<span class="sd">        user and getting their salt and a challenge in the form of a login</span>
+<span class="sd">        session ID. The second round involves computing the password hash</span>
+<span class="sd">        and using it to answer the password challenge.</span>
+
+<span class="sd">        If the login succeeds the method returns True and a session ID is</span>
+<span class="sd">        stored in the instance along with all the user object details returned</span>
+<span class="sd">        by the API when a login is successful.</span>
+
+<span class="sd">        If login fails the method throws a :mod:`keybase.KeybaseError` with all</span>
+<span class="sd">        the details for why login failed in the message.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_raise_unbound_error</span><span class="p">(</span><span class="s">&#39;Unable to log in to keybase.io&#39;</span><span class="p">)</span>
+        <span class="n">login_session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_salt</span><span class="p">()</span>
+        <span class="c"># TODO: Lots of work here!</span>
+</div></div>
+<div class="viewcode-block" id="KeybasePublicKey"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybasePublicKey">[docs]</a><span class="k">class</span> <span class="nc">KeybasePublicKey</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    A class that represents the public key side of a public/private key pair.</span>
+
+<span class="sd">    It is tied very closely to the keybase.io data that&#39;s stored for public</span>
+<span class="sd">    keys in user profiles in the data store. As such, it&#39;s meant to be</span>
+<span class="sd">    initialized with a hash that contains the fields seen in a keybase.io</span>
+<span class="sd">    public key record.</span>
+
+<span class="sd">    &gt;&gt;&gt; key_data = {</span>
+<span class="sd">    ... &quot;kid&quot;: &quot;0101a55950dc685d1ae098b5e261edc6aa1ac4835e82e5c7eef6aad98c12c4fdaef50a&quot;,</span>
+<span class="sd">    ... &quot;key_type&quot;: 1,</span>
+<span class="sd">    ... &quot;bundle&quot;: &quot;-----BEGIN PGP PUBLIC KEY BLOCK----- KJ234990jkdjlasdkfj093lkjdkfjol -----END PGP PUBLIC KEY BLOCK-----&quot;,</span>
+<span class="sd">    ... &quot;mtime&quot;: 1396741239,</span>
+<span class="sd">    ... &quot;ctime&quot;: 1396741239,</span>
+<span class="sd">    ... &quot;ukbid&quot;: &quot;c783ab0c262f38837d325d8be4e5ae11&quot;,</span>
+<span class="sd">    ... &quot;key_fingerprint&quot;: &quot;ef8febc949b9d15057f6d636102c7b498133f0fd&quot;</span>
+<span class="sd">    ... }</span>
+<span class="sd">    &gt;&gt;&gt; kpk = KeybasePublicKey(**key_data)</span>
+<span class="sd">    &gt;&gt;&gt; kpk.kid == key_data[&#39;kid&#39;]</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; kpk.bundle == key_data[&#39;bundle&#39;]</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; kpk.key_fingerprint == key_data[&#39;key_fingerprint&#39;]</span>
+<span class="sd">    True</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s">&#39;mtime&#39;</span> <span class="ow">or</span> <span class="n">key</span> <span class="o">==</span> <span class="s">&#39;ctime&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">kid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__property_getter</span><span class="p">(</span><span class="s">&#39;kid&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">key_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__property_getter</span><span class="p">(</span><span class="s">&#39;key_type&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bundle</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__property_getter</span><span class="p">(</span><span class="s">&#39;bundle&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ascii</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__property_getter</span><span class="p">(</span><span class="s">&#39;bundle&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mtime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__property_getter</span><span class="p">(</span><span class="s">&#39;mtime&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ctime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__property_getter</span><span class="p">(</span><span class="s">&#39;ctime&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ukbid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__property_getter</span><span class="p">(</span><span class="s">&#39;ukbid&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">key_fingerprint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__property_getter</span><span class="p">(</span><span class="s">&#39;key_fingerprint&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__property_getter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Get a random property value from the __data dictionary in the</span>
+<span class="sd">        object. Returns the value or None if the property isn&#39;t in the</span>
+<span class="sd">        dictionary.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">prop</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__data</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__data</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">value</span>
+</div>
+<div class="viewcode-block" id="KeybaseError"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseError">[docs]</a><span class="k">class</span> <span class="nc">KeybaseError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    General error class for Keybase errors.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="KeybaseUnboundInstanceError"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseUnboundInstanceError">[docs]</a><span class="k">class</span> <span class="nc">KeybaseUnboundInstanceError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Thrown when calling a Keybase object method that requires the object</span>
+<span class="sd">    be bound to a real user in the keybase store and the instance hasn&#39;t</span>
+<span class="sd">    had such a binding established yet.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="KeybaseUserNotFound"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseUserNotFound">[docs]</a><span class="k">class</span> <span class="nc">KeybaseUserNotFound</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Thrown when calling Keybase.lookup(username) and the username cannot</span>
+<span class="sd">    be located in the keybase.io public key repository.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="KeybaseLookupInvalidError"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseLookupInvalidError">[docs]</a><span class="k">class</span> <span class="nc">KeybaseLookupInvalidError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Thrown when calling Keybase.lookup(username) on an instance that has</span>
+<span class="sd">    already been bound to a valid user via another lookup() call.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">pass</span>
+    </div>
+</pre></div>
+
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014, Ian Chesal.
+    </p>
+  </div>
+
+  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

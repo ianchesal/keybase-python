@@ -58,11 +58,11 @@
         
             <ul>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../using_keybase.html">Using Keybase</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../using_keybase.html#the-keybase-class-accessing-public-user-data">The <tt class="docutils literal"><span class="pre">Keybase</span></tt> Class &#8211; Accessing Public User Data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../using_keybase.html#the-keybaseadmin-class-manipulating-user-s-public-key-data">The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> Class &#8211; Manipulating User&#8217;s Public Key Data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../using_keybase.html#the-keybasepublickey-class-public-key-records-from-the-keybase-io-data-store">The <tt class="docutils literal"><span class="pre">KeybasePublicKey</span></tt> Class &#8211; Public Key Records from the Keybase.io Data Store</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../using_keybase.html#the-keybase-error-classes">The Keybase Error Classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../keybase.html">Using Keybase</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../keybase.html#the-keybase-class-accessing-public-user-data">The <tt class="docutils literal"><span class="pre">Keybase</span></tt> Class &#8211; Accessing Public User Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../keybase.html#the-keybaseadmin-class-manipulating-user-s-public-key-data">The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> Class &#8211; Manipulating User&#8217;s Public Key Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../keybase.html#the-keybasepublickey-class-public-key-records-from-the-keybase-io-data-store">The <tt class="docutils literal"><span class="pre">KeybasePublicKey</span></tt> Class &#8211; Public Key Records from the Keybase.io Data Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../keybase.html#the-keybase-error-classes">The Keybase Error Classes</a></li>
 </ul>
 </li>
 </ul>
@@ -118,7 +118,7 @@
 <span class="n">KEYBASE_BASE_URL</span> <span class="o">=</span> <span class="s">&#39;https://keybase.io/_/api/&#39;</span>
 <span class="n">KEYBASE_API_VERSION</span> <span class="o">=</span> <span class="s">&#39;1.0&#39;</span>
 
-<div class="viewcode-block" id="Keybase"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase">[docs]</a><span class="k">class</span> <span class="nc">Keybase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Keybase"><a class="viewcode-back" href="../keybase.html#keybase.Keybase">[docs]</a><span class="k">class</span> <span class="nc">Keybase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    A read-only view of a keybase.io user and their publically available</span>
 <span class="sd">    keys. This class allows you to do interesting things with someone&#39;s</span>
@@ -149,35 +149,35 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">lookup</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
 
     <span class="nd">@property</span>
-<div class="viewcode-block" id="Keybase.name"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Keybase.name"><a class="viewcode-back" href="../keybase.html#keybase.Keybase.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        The full name of the person associated with this Keybase data.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_section_getter</span><span class="p">(</span><span class="s">&#39;profile&#39;</span><span class="p">,</span> <span class="s">&#39;full_name&#39;</span><span class="p">)</span>
 </div>
     <span class="nd">@property</span>
-<div class="viewcode-block" id="Keybase.location"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.location">[docs]</a>    <span class="k">def</span> <span class="nf">location</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Keybase.location"><a class="viewcode-back" href="../keybase.html#keybase.Keybase.location">[docs]</a>    <span class="k">def</span> <span class="nf">location</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        The geographical location of the person associated with this Keybase data.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_section_getter</span><span class="p">(</span><span class="s">&#39;profile&#39;</span><span class="p">,</span> <span class="s">&#39;location&#39;</span><span class="p">)</span>
 </div>
     <span class="nd">@property</span>
-<div class="viewcode-block" id="Keybase.username"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.username">[docs]</a>    <span class="k">def</span> <span class="nf">username</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Keybase.username"><a class="viewcode-back" href="../keybase.html#keybase.Keybase.username">[docs]</a>    <span class="k">def</span> <span class="nf">username</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        The username of the person associated with this Keybase data.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_username</span>
 </div>
     <span class="nd">@property</span>
-<div class="viewcode-block" id="Keybase.api_version"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.api_version">[docs]</a>    <span class="k">def</span> <span class="nf">api_version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Keybase.api_version"><a class="viewcode-back" href="../keybase.html#keybase.Keybase.api_version">[docs]</a>    <span class="k">def</span> <span class="nf">api_version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        The Keybase API version in use for this instace.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="k">return</span> <span class="n">KEYBASE_API_VERSION</span>
 </div>
     <span class="nd">@property</span>
-<div class="viewcode-block" id="Keybase.is_bound"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.is_bound">[docs]</a>    <span class="k">def</span> <span class="nf">is_bound</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Keybase.is_bound"><a class="viewcode-back" href="../keybase.html#keybase.Keybase.is_bound">[docs]</a>    <span class="k">def</span> <span class="nf">is_bound</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Returns True if this Keybase object instance is bound to a user or</span>
 <span class="sd">        False if it has yet to be associated with a specific username.</span>
@@ -187,7 +187,7 @@
         <span class="k">return</span> <span class="bp">False</span>
 </div>
     <span class="nd">@property</span>
-<div class="viewcode-block" id="Keybase.public_keys"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.public_keys">[docs]</a>    <span class="k">def</span> <span class="nf">public_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Keybase.public_keys"><a class="viewcode-back" href="../keybase.html#keybase.Keybase.public_keys">[docs]</a>    <span class="k">def</span> <span class="nf">public_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        A tuple of all the public keys available for this account. An empty</span>
 <span class="sd">        tuple is returned if the instance isn&#39;t bound to a user or the user</span>
@@ -243,7 +243,7 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_bound</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">KeybaseUnboundInstanceError</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Keybase.get_public_key"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.get_public_key">[docs]</a>    <span class="k">def</span> <span class="nf">get_public_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keyname</span><span class="o">=</span><span class="s">&#39;primary&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="Keybase.get_public_key"><a class="viewcode-back" href="../keybase.html#keybase.Keybase.get_public_key">[docs]</a>    <span class="k">def</span> <span class="nf">get_public_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keyname</span><span class="o">=</span><span class="s">&#39;primary&#39;</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Returns a key named keyname as a :mod:`keybase.KeybasePublicKey` object</span>
 <span class="sd">        if it exists in the current Keybase instance. Defaults to a key named</span>
@@ -277,7 +277,7 @@
             <span class="n">key</span> <span class="o">=</span> <span class="n">KeybasePublicKey</span><span class="p">(</span><span class="o">**</span><span class="n">key_data</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">key</span>
 </div>
-<div class="viewcode-block" id="Keybase.lookup"><a class="viewcode-back" href="../using_keybase.html#keybase.Keybase.lookup">[docs]</a>    <span class="k">def</span> <span class="nf">lookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="p">):</span>
+<div class="viewcode-block" id="Keybase.lookup"><a class="viewcode-back" href="../keybase.html#keybase.Keybase.lookup">[docs]</a>    <span class="k">def</span> <span class="nf">lookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Looks up a user in the keybase.io public directory and initializes</span>
 <span class="sd">        this Keybase class instance with the user&#39;s public keybase.io</span>
@@ -351,7 +351,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_username</span> <span class="o">=</span> <span class="n">username</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__lookup_performed</span> <span class="o">=</span> <span class="bp">True</span>
 </div></div>
-<div class="viewcode-block" id="KeybaseAdmin"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseAdmin">[docs]</a><span class="k">class</span> <span class="nc">KeybaseAdmin</span><span class="p">(</span><span class="n">Keybase</span><span class="p">):</span>
+<div class="viewcode-block" id="KeybaseAdmin"><a class="viewcode-back" href="../keybase.html#keybase.KeybaseAdmin">[docs]</a><span class="k">class</span> <span class="nc">KeybaseAdmin</span><span class="p">(</span><span class="n">Keybase</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Extends the :mod:`keybase.Keybase` class to add adminstrative functions</span>
 <span class="sd">    to what the Keybase class can already do. Allowing you to add keys,</span>
@@ -372,11 +372,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">__session_cookie</span> <span class="o">=</span> <span class="bp">None</span>
 
     <span class="nd">@property</span>
-<div class="viewcode-block" id="KeybaseAdmin.salt"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseAdmin.salt">[docs]</a>    <span class="k">def</span> <span class="nf">salt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="KeybaseAdmin.salt"><a class="viewcode-back" href="../keybase.html#keybase.KeybaseAdmin.salt">[docs]</a>    <span class="k">def</span> <span class="nf">salt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__salt</span>
 </div>
     <span class="nd">@property</span>
-<div class="viewcode-block" id="KeybaseAdmin.session"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseAdmin.session">[docs]</a>    <span class="k">def</span> <span class="nf">session</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="KeybaseAdmin.session"><a class="viewcode-back" href="../keybase.html#keybase.KeybaseAdmin.session">[docs]</a>    <span class="k">def</span> <span class="nf">session</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__session_cookie</span>
 </div>
     <span class="k">def</span> <span class="nf">_get_salt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -410,7 +410,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">__salt</span> <span class="o">=</span> <span class="n">jresponse</span><span class="p">[</span><span class="s">&#39;salt&#39;</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">jresponse</span><span class="p">[</span><span class="s">&#39;login_session&#39;</span><span class="p">]</span>
 
-<div class="viewcode-block" id="KeybaseAdmin.login"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseAdmin.login">[docs]</a>    <span class="k">def</span> <span class="nf">login</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">password</span><span class="p">):</span>
+<div class="viewcode-block" id="KeybaseAdmin.login"><a class="viewcode-back" href="../keybase.html#keybase.KeybaseAdmin.login">[docs]</a>    <span class="k">def</span> <span class="nf">login</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">password</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Executes a two-round login procedure for a user using the supplied</span>
 <span class="sd">        password to authenticate. The first round involves looking up the</span>
@@ -429,7 +429,7 @@
         <span class="n">login_session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_salt</span><span class="p">()</span>
         <span class="c"># TODO: Lots of work here!</span>
 </div></div>
-<div class="viewcode-block" id="KeybasePublicKey"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybasePublicKey">[docs]</a><span class="k">class</span> <span class="nc">KeybasePublicKey</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="KeybasePublicKey"><a class="viewcode-back" href="../keybase.html#keybase.KeybasePublicKey">[docs]</a><span class="k">class</span> <span class="nc">KeybasePublicKey</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    A class that represents the public key side of a public/private key pair.</span>
 
@@ -507,13 +507,13 @@
             <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__data</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">value</span>
 </div>
-<div class="viewcode-block" id="KeybaseError"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseError">[docs]</a><span class="k">class</span> <span class="nc">KeybaseError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="KeybaseError"><a class="viewcode-back" href="../keybase.html#keybase.KeybaseError">[docs]</a><span class="k">class</span> <span class="nc">KeybaseError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    General error class for Keybase errors.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="k">pass</span>
 </div>
-<div class="viewcode-block" id="KeybaseUnboundInstanceError"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseUnboundInstanceError">[docs]</a><span class="k">class</span> <span class="nc">KeybaseUnboundInstanceError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="KeybaseUnboundInstanceError"><a class="viewcode-back" href="../keybase.html#keybase.KeybaseUnboundInstanceError">[docs]</a><span class="k">class</span> <span class="nc">KeybaseUnboundInstanceError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Thrown when calling a Keybase object method that requires the object</span>
 <span class="sd">    be bound to a real user in the keybase store and the instance hasn&#39;t</span>
@@ -521,14 +521,14 @@
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="k">pass</span>
 </div>
-<div class="viewcode-block" id="KeybaseUserNotFound"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseUserNotFound">[docs]</a><span class="k">class</span> <span class="nc">KeybaseUserNotFound</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="KeybaseUserNotFound"><a class="viewcode-back" href="../keybase.html#keybase.KeybaseUserNotFound">[docs]</a><span class="k">class</span> <span class="nc">KeybaseUserNotFound</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Thrown when calling Keybase.lookup(username) and the username cannot</span>
 <span class="sd">    be located in the keybase.io public key repository.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="k">pass</span>
 </div>
-<div class="viewcode-block" id="KeybaseLookupInvalidError"><a class="viewcode-back" href="../using_keybase.html#keybase.KeybaseLookupInvalidError">[docs]</a><span class="k">class</span> <span class="nc">KeybaseLookupInvalidError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="KeybaseLookupInvalidError"><a class="viewcode-back" href="../keybase.html#keybase.KeybaseLookupInvalidError">[docs]</a><span class="k">class</span> <span class="nc">KeybaseLookupInvalidError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Thrown when calling Keybase.lookup(username) on an instance that has</span>
 <span class="sd">    already been bound to a valid user via another lookup() call.</span>

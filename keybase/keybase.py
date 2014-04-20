@@ -8,13 +8,72 @@
 '''
 
 #pylint: disable=R0902
+#pylint: disable=C0301
 
 import datetime
 import requests
 import os
+import gnupg
+import tempfile
+import shutil
 
 KEYBASE_BASE_URL = 'https://keybase.io/_/api/'
 KEYBASE_API_VERSION = '1.0'
+
+def gpg(binary='gpg'):
+    '''
+    Returns the full path to the gpg instance on this machine.
+
+    I implemented this because the :mod:`gnupg.GPG` class was having a
+    hard time dealing with the fact that my Homebrew-installed GPG instance
+    was a symlink in the ``/usr/local/bin`` directory instead of a real
+    path to a real file.
+
+    If your GnuPG binary isn't named ``gpg`` you can override the default
+    with the ``binary=<something>`` option to the call to give it another
+    name for the executable.
+
+    On windows you shouldn't need to supply an extension to the command
+    like ``.exe`` or ``.cmd`` -- it will figure it out for you.
+
+    Returns ``None`` if it cannot find a gpg instance in your PATH.
+    '''
+    mygpg = _which(binary)
+    if len(mygpg) > 0:
+        return os.path.realpath(mygpg[0])
+    return None
+
+def _which(executable, flags=os.X_OK):
+    '''
+    Borrowed from Twisted's :mod:twisted.python.proutils .
+
+    Search PATH for executable files with the given name.
+
+    On newer versions of MS-Windows, the PATHEXT environment variable will be
+    set to the list of file extensions for files considered executable. This
+    will normally include things like ".EXE". This fuction will also find files
+    with the given name ending with any of these extensions.
+
+    On MS-Windows the only flag that has any meaning is os.F_OK. Any other
+    flags will be ignored.
+
+    Returns a list of the full paths to files found, in the order in which
+    they were found.
+    '''
+    result = []
+    exts = filter(None, os.environ.get('PATHEXT', '').split(os.pathsep))
+    path = os.environ.get('PATH', None)
+    if path is None:
+        return []
+    for tpath in os.environ.get('PATH', '').split(os.pathsep):
+        tpath = os.path.join(tpath, executable)
+        if os.access(tpath, flags):
+            result.append(tpath)
+        for ext in exts:
+            pext = tpath + ext
+            if os.access(pext, flags):
+                result.append(tpath)
+    return result
 
 class Keybase(object):
     '''
@@ -23,12 +82,13 @@ class Keybase(object):
     public key data like encrypt a message for them or verify that a message
     they signed to you was actually signed by them.
 
-    If you supply a username the user's public information will be automatically
-    retrieved. If the username doesn't exist a :mod:`keybase.KeybaseUserNotFound`
-    exception will be raised.
+    If you supply a username the user's public information will be
+    automatically retrieved. If the username doesn't exist a
+    :mod:`keybase.KeybaseUserNotFound` exception will be raised.
 
     If you don't supply a username you can initiate a user lookup by
-    using the :func:`keybase.Keybase.lookup` method on the object after you create
+    using the :func:`keybase.Keybase.lookup` method on the object after
+    you create
     it.
 
     .. note::
@@ -56,7 +116,8 @@ class Keybase(object):
     @property
     def location(self):
         '''
-        The geographical location of the person associated with this Keybase data.
+        The geographical location of the person associated with this
+        Keybase data.
         '''
         return self._section_getter('profile', 'location')
 
@@ -145,7 +206,8 @@ class Keybase(object):
         '''
         Returns a key named keyname as a :mod:`keybase.KeybasePublicKey` object
         if it exists in the current Keybase instance. Defaults to a key named
-        ``primary`` if you opt not to supply a keyname when you call the method.
+        ``primary`` if you opt not to supply a keyname when you call the
+        method.
 
         >>> k = Keybase('irc')
         >>> primary_key = k.get_public_key()
@@ -190,7 +252,7 @@ class Keybase(object):
         The lookup() method can be called until the first successful user
         is found in keybase.io. After that, subsequent lookup calls will
         raise a :mod:`keybase.KeybaseLookupInvalidError` exception:
-        
+
         >>> k.lookup('ab')
         Traceback (most recent call last):
         ...
@@ -208,7 +270,6 @@ class Keybase(object):
         Traceback (most recent call last):
         ...
         KeybaseUserNotFound: ('User abcdefghijklmno123 not found', {'url': u'https://keybase.io/_/api/1.0/user/lookup.json?username=abcdefghijklmno123'})
-        
         '''
         # If this object is already initialized then the user shouldn't
         # be calling this method a second time.
@@ -216,10 +277,10 @@ class Keybase(object):
             raise KeybaseLookupInvalidError(
                 'Keybase object already bound to username \'{}\''.format(self._username))
         url = KEYBASE_BASE_URL + KEYBASE_API_VERSION + '/user/lookup.json'
-        payload = { 'username': username }
-        r = requests.get(url, params=payload, timeout=10)
-        r.raise_for_status()    
-        jresponse = r.json()
+        payload = {'username': username}
+        resp = requests.get(url, params=payload, timeout=10)
+        resp.raise_for_status()
+        jresponse = resp.json()
         # Pendantic searching of the status section of the API's JSON
         # response. We could just leave it up to the 'them' section
         # existing or not but future API changes may require that we
@@ -228,21 +289,21 @@ class Keybase(object):
         # for that now.
         if not 'status' in jresponse or not 'name' in jresponse['status']:
             raise KeybaseError('Malformed API response to user/lookup.json request', {
-                'url': r.url,
-                'response': r.text
+                'url': resp.url,
+                'response': resp.text
                 })
         if jresponse['status']['name'] == 'NOT_FOUND':
             raise KeybaseUserNotFound('User {} not found'.format(username), {
-                'url': r.url,
+                'url': resp.url,
                 })
         if jresponse['status']['name'] == 'INPUT_ERROR':
             raise KeybaseUserNotFound('User {} not found'.format(username), {
-                'url': r.url,
+                'url': resp.url,
                 })
         if not 'them' in jresponse:
             raise KeybaseError('Malformed API response to user/lookup.json request', {
-                'url': r.url,
-                'response': r.text
+                'url': resp.url,
+                'response': resp.text
                 })
         # Initialize this user from the 'them' part of the reponse.
         self._user_object = jresponse['them']
@@ -271,10 +332,16 @@ class KeybaseAdmin(Keybase):
 
     @property
     def salt(self):
+        '''
+        The salt for this login session.
+        '''
         return self.__salt
 
     @property
     def session(self):
+        '''
+        The session cookie that's tracking this login session.
+        '''
         return self.__session_cookie
 
     def _get_salt(self):
@@ -297,14 +364,14 @@ class KeybaseAdmin(Keybase):
         '''
         self._raise_unbound_error('Unable to retrieve salt from keybase.io')
         url = KEYBASE_BASE_URL + KEYBASE_API_VERSION + '/getsalt.json'
-        payload = { 'email_or_username': self._username }
-        r = requests.get(url, params=payload, timeout=10)
-        r.raise_for_status()
-        jresponse = r.json()
+        payload = {'email_or_username': self._username}
+        resp = requests.get(url, params=payload, timeout=10)
+        resp.raise_for_status()
+        jresponse = resp.json()
         if not 'salt' in jresponse:
-            raise KeybaseError('_get_salt(): No salt value returned for login {0}'.format(login_id))
+            raise KeybaseError('_get_salt(): No salt value returned for login {0}'.format(self._username))
         if not 'login_session' in jresponse:
-            raise KeybaseError('_get_salt(): No login_session value returned for login {0}'.format(login_id))
+            raise KeybaseError('_get_salt(): No login_session value returned for login {0}'.format(self._username))
         self.__salt = jresponse['salt']
         return jresponse['login_session']
 
@@ -325,7 +392,6 @@ class KeybaseAdmin(Keybase):
         '''
         self._raise_unbound_error('Unable to log in to keybase.io')
         login_session = self._get_salt()
-        # TODO: Lots of work here!
 
 class KeybasePublicKey(object):
     '''
@@ -336,23 +402,20 @@ class KeybasePublicKey(object):
     initialized with a hash that contains the fields seen in a keybase.io
     public key record.
 
-    >>> key_data = {
-    ... "kid": "0101a55950dc685d1ae098b5e261edc6aa1ac4835e82e5c7eef6aad98c12c4fdaef50a",
-    ... "key_type": 1,
-    ... "bundle": "-----BEGIN PGP PUBLIC KEY BLOCK----- KJ234990jkdjlasdkfj093lkjdkfjol -----END PGP PUBLIC KEY BLOCK-----",
-    ... "mtime": 1396741239,
-    ... "ctime": 1396741239,
-    ... "ukbid": "c783ab0c262f38837d325d8be4e5ae11",
-    ... "key_fingerprint": "ef8febc949b9d15057f6d636102c7b498133f0fd"
-    ... }
-    >>> kpk = KeybasePublicKey(**key_data)
-    >>> kpk.kid == key_data['kid']
-    True
-    >>> kpk.bundle == key_data['bundle']
-    True
-    >>> kpk.key_fingerprint == key_data['key_fingerprint']
-    True
+    Under the hood it uses GnupGP's :py:class:`gnupg.GPG` class to do the
+    heavy lifting. It creates a keystore that is unique to this instance of
+    the class and loads the public key in to this keystore.
 
+    You won't be able to decrypt with this class because it only contains a public
+    key, not a private key. But you can encrypt and and sign:
+
+    >>> k = Keybase('irc')
+    >>> pkey = k.get_public_key()
+    >>> pkey.key_fingerprint
+    u'7cc0ce678c37fc27da3ce494f56b7a6f0a32a0b9'
+
+    If a valid GPG instance cannot be created when you initialize a KeybasePublicKey
+    a KeybasePublicKeyError will be raised.
     '''
     def __init__(self, **kwargs):
         self.__data = dict()
@@ -361,38 +424,91 @@ class KeybasePublicKey(object):
                 self.__data[key] = datetime.datetime.fromtimestamp(int(value))
             else:
                 self.__data[key] = value
+        self.__gpg = None
+        self.__tempdir = tempfile.mkdtemp(suffix='.keybase')
+        if self.bundle:
+            self.__gpg = gnupg.GPG(
+                binary=gpg(),
+                homedir=self.__tempdir,
+                verbose=False,
+                use_agent=False)
+            import_result = self.__gpg.import_keys(self.bundle)
+            # TODO: For some reason importing a single key results in two result
+            # entries in the ImportResult.result and ImportResult.fingerprints
+            # arrays. I've asked the gnupg devs why this is and I'm waiting to
+            # hear back. For now we expect one and only one key to exist in our
+            # keyring after import so we'll check all of them an assert they're
+            # all carrying the same fingerprint as the key that was loaded in to
+            # this instance.
+            for fprint in import_result.fingerprints:
+                if fprint.lower() != self.key_fingerprint:
+                    raise KeybasePublicKeyError('A serious security error has occured: fingerprint mismatch on key import')
+        else:
+            raise KeybasePublicKeyError('Missing PGP key bundle in init data')
+        if not self.__gpg:
+            raise KeybasePublicKeyError('Unable to create Keybase public key instance')
+
+    def __del__(self):
+        # This makes sure the keyring we created is destroyed when the object
+        # gets garbage collected.
+        shutil.rmtree(self.__tempdir, ignore_errors=True)
 
     @property
     def kid(self):
+        '''
+        The Keybase key ID for this key.
+        '''
         return self.__property_getter('kid')
 
     @property
     def key_type(self):
+        '''
+        The Keybase key type for this key (integer).
+        '''
         return self.__property_getter('key_type')
 
     @property
     def bundle(self):
+        '''
+        The GPG key bundle. This is the ASCII representation of the public
+        key data associated with the Keybase key.
+        '''
         return self.__property_getter('bundle')
 
     @property
     def ascii(self):
+        '''
+        Synonym for bundle property.
+        '''
         return self.__property_getter('bundle')
 
     @property
     def mtime(self):
+        '''
+        The datetime this key was last modified in the Keybase database.
+        '''
         return self.__property_getter('mtime')
 
     @property
     def ctime(self):
+        '''
+        The datetime this key was created in the keybase database.
+        '''
         return self.__property_getter('ctime')
 
     @property
     def ukbid(self):
+        '''
+        The UKB ID for the key.
+        '''
         return self.__property_getter('ukbid')
 
     @property
     def key_fingerprint(self):
-        return self.__property_getter('key_fingerprint')
+        '''
+        The GPG fingerprint for the key.
+        '''
+        return self.__property_getter('key_fingerprint').lower()
 
     def __property_getter(self, prop):
         '''
@@ -432,4 +548,10 @@ class KeybaseLookupInvalidError(Exception):
     already been bound to a valid user via another lookup() call.
     '''
     pass
-    
+
+class KeybasePublicKeyError(Exception):
+    '''
+    Thrown when a KeybasePublicKey cannot be created successfully.
+    '''
+    pass
+

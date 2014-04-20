@@ -2,6 +2,14 @@
 Using Keybase
 =============
 
+Keybase Common Methods
+----------------------
+
+The following common, convenience methods exist to make it easier to work with
+GnuPG and the Keybase API in your code.
+
+.. autofunction:: keybase.gpg
+
 The ``Keybase`` Class -- Accessing Public User Data
 ---------------------------------------------------
 

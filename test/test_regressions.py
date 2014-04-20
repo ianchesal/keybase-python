@@ -62,7 +62,7 @@ def test_public_key_downloading():
     It should be equal to the golden version of the public key we have
     on file for this test already.
     '''
-    k = keybase.keybase.Keybase('irc')
+    k = keybase.Keybase('irc')
     pkey = k.get_public_key().ascii
     assert compare_string_to_file(somestring=pkey, somefile='irc.public.key')
 
@@ -124,10 +124,10 @@ BzQzv4OEmz434EDyNGj71cdiOGadG3z0
     key_fingerprint = '7cc0ce678c37fc27da3ce494f56b7a6f0a32a0b9'
     initopts = {'bundle': key_data, 'key_fingerprint': key_fingerprint}
     tempdir = tempfile.mkdtemp(suffix='.keybase')
-    gpg = gnupg.GPG(homedir=tempdir, verbose=False, use_agent=False, binary=keybase.keybase.gpg())
+    gpg = gnupg.GPG(homedir=tempdir, verbose=False, use_agent=False, binary=keybase.gpg())
     import_result = gpg.import_keys(key_data)
     assert len(import_result.fingerprints) > 0
-    key = keybase.keybase.KeybasePublicKey(**initopts)
+    key = keybase.KeybasePublicKey(**initopts)
     assert key.key_fingerprint == key_fingerprint
     assert import_result.fingerprints[0].lower() == key_fingerprint
     assert key.key_fingerprint == import_result.fingerprints[0].lower()

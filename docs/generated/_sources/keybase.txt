@@ -19,6 +19,12 @@ The ``Keybase`` class allows you to find users in the Keybase directory and acce
     :members:
     :undoc-members:
 
+The ``KeybasePublicKey`` Class -- Public Key Records from the Keybase.io Data Store
+-----------------------------------------------------------------------------------
+
+.. autoclass:: keybase.KeybasePublicKey
+  :members:
+
 The ``KeybaseAdmin`` Class -- Manipulating User's Public Key Data
 -----------------------------------------------------------------
 
@@ -26,18 +32,12 @@ The ``KeybaseAdmin`` class lets you authenticate as a user to the Keybase.io pub
 
 .. note::
 
-	This class is currently not implemented! Anything you read here is planned, not real, at this point.
+  This class is currently not implemented! Anything you read here is planned, not real, at this point.
 
 .. autoclass:: keybase.KeybaseAdmin
     :members:
     :undoc-members:
     :show-inheritance:
-
-The ``KeybasePublicKey`` Class -- Public Key Records from the Keybase.io Data Store
------------------------------------------------------------------------------------
-
-.. autoclass:: keybase.KeybasePublicKey
-  :members:
 
 The Keybase Error Classes
 -------------------------

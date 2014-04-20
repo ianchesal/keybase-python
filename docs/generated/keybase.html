@@ -61,8 +61,8 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="">Using Keybase</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#keybase-common-methods">Keybase Common Methods</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#the-keybase-class-accessing-public-user-data">The <tt class="docutils literal"><span class="pre">Keybase</span></tt> Class &#8211; Accessing Public User Data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#the-keybaseadmin-class-manipulating-user-s-public-key-data">The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> Class &#8211; Manipulating User&#8217;s Public Key Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#the-keybasepublickey-class-public-key-records-from-the-keybase-io-data-store">The <tt class="docutils literal"><span class="pre">KeybasePublicKey</span></tt> Class &#8211; Public Key Records from the Keybase.io Data Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-keybaseadmin-class-manipulating-user-s-public-key-data">The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> Class &#8211; Manipulating User&#8217;s Public Key Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#the-keybase-error-classes">The Keybase Error Classes</a></li>
 </ul>
 </li>
@@ -147,9 +147,19 @@ store in any way. If you want to administer a user&#8217;s keys please see
 <a class="reference internal" href="#keybase.KeybaseAdmin" title="keybase.KeybaseAdmin"><tt class="xref py py-mod docutils literal"><span class="pre">keybase.KeybaseAdmin</span></tt></a>.</p>
 </div>
 <dl class="attribute">
+<dt id="keybase.Keybase.KEYBASE_API_VERSION">
+<tt class="descname">KEYBASE_API_VERSION</tt><em class="property"> = '1.0'</em><a class="headerlink" href="#keybase.Keybase.KEYBASE_API_VERSION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="keybase.Keybase.KEYBASE_BASE_URL">
+<tt class="descname">KEYBASE_BASE_URL</tt><em class="property"> = 'https://keybase.io/_/api/'</em><a class="headerlink" href="#keybase.Keybase.KEYBASE_BASE_URL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="keybase.Keybase.api_version">
 <tt class="descname">api_version</tt><a class="reference internal" href="_modules/keybase.html#Keybase.api_version"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.Keybase.api_version" title="Permalink to this definition">¶</a></dt>
-<dd><p>The Keybase API version in use for this instace.</p>
+<dd><p>The Keybase API version in use for this instance.</p>
 </dd></dl>
 
 <dl class="method">
@@ -177,9 +187,6 @@ exist for this user.</p>
 <span class="gt">Traceback (most recent call last):</span>
 <span class="c">...</span>
 <span class="gr">KeybaseUnboundInstanceError</span>: <span class="n">Unable to fetch public key</span>
-</pre></div>
-</div>
-<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -262,57 +269,6 @@ has no keys.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="the-keybaseadmin-class-manipulating-user-s-public-key-data">
-<h2>The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> Class &#8211; Manipulating User&#8217;s Public Key Data<a class="headerlink" href="#the-keybaseadmin-class-manipulating-user-s-public-key-data" title="Permalink to this headline">¶</a></h2>
-<p>The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> class lets you authenticate as a user to the Keybase.io public data store and manipulate the stored public keys for the user. You can add and revoke keys, create new keys and validate other user&#8217;s keys.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">This class is currently not implemented! Anything you read here is planned, not real, at this point.</p>
-</div>
-<dl class="class">
-<dt id="keybase.KeybaseAdmin">
-<em class="property">class </em><tt class="descclassname">keybase.</tt><tt class="descname">KeybaseAdmin</tt><big>(</big><em>username</em><big>)</big><a class="reference internal" href="_modules/keybase.html#KeybaseAdmin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybaseAdmin" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#keybase.Keybase" title="keybase.Keybase"><tt class="xref py py-class docutils literal"><span class="pre">keybase.Keybase</span></tt></a></p>
-<p>Extends the <a class="reference internal" href="#keybase.Keybase" title="keybase.Keybase"><tt class="xref py py-mod docutils literal"><span class="pre">keybase.Keybase</span></tt></a> class to add adminstrative functions
-to what the Keybase class can already do. Allowing you to add keys,
-revoke keys, sign keys and kill all active login sessions for a user.</p>
-<p>In order to use this class you need to be in possession of the login
-password for the keybase.io account.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">This class is still not implemented. The documentation you see here
-is for future reference only.</p>
-</div>
-<dl class="method">
-<dt id="keybase.KeybaseAdmin.login">
-<tt class="descname">login</tt><big>(</big><em>password</em><big>)</big><a class="reference internal" href="_modules/keybase.html#KeybaseAdmin.login"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybaseAdmin.login" title="Permalink to this definition">¶</a></dt>
-<dd><p>Executes a two-round login procedure for a user using the supplied
-password to authenticate. The first round involves looking up the
-user and getting their salt and a challenge in the form of a login
-session ID. The second round involves computing the password hash
-and using it to answer the password challenge.</p>
-<p>If the login succeeds the method returns True and a session ID is
-stored in the instance along with all the user object details returned
-by the API when a login is successful.</p>
-<p>If login fails the method throws a <a class="reference internal" href="#keybase.KeybaseError" title="keybase.KeybaseError"><tt class="xref py py-mod docutils literal"><span class="pre">keybase.KeybaseError</span></tt></a> with all
-the details for why login failed in the message.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="keybase.KeybaseAdmin.salt">
-<tt class="descname">salt</tt><a class="reference internal" href="_modules/keybase.html#KeybaseAdmin.salt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybaseAdmin.salt" title="Permalink to this definition">¶</a></dt>
-<dd><p>The salt for this login session.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="keybase.KeybaseAdmin.session">
-<tt class="descname">session</tt><a class="reference internal" href="_modules/keybase.html#KeybaseAdmin.session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybaseAdmin.session" title="Permalink to this definition">¶</a></dt>
-<dd><p>The session cookie that&#8217;s tracking this login session.</p>
-</dd></dl>
-
-</dd></dl>
-
-</div>
 <div class="section" id="the-keybasepublickey-class-public-key-records-from-the-keybase-io-data-store">
 <h2>The <tt class="docutils literal"><span class="pre">KeybasePublicKey</span></tt> Class &#8211; Public Key Records from the Keybase.io Data Store<a class="headerlink" href="#the-keybasepublickey-class-public-key-records-from-the-keybase-io-data-store" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
@@ -383,6 +339,57 @@ key data associated with the Keybase key.</p>
 <dt id="keybase.KeybasePublicKey.ukbid">
 <tt class="descname">ukbid</tt><a class="reference internal" href="_modules/keybase.html#KeybasePublicKey.ukbid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybasePublicKey.ukbid" title="Permalink to this definition">¶</a></dt>
 <dd><p>The UKB ID for the key.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="the-keybaseadmin-class-manipulating-user-s-public-key-data">
+<h2>The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> Class &#8211; Manipulating User&#8217;s Public Key Data<a class="headerlink" href="#the-keybaseadmin-class-manipulating-user-s-public-key-data" title="Permalink to this headline">¶</a></h2>
+<p>The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> class lets you authenticate as a user to the Keybase.io public data store and manipulate the stored public keys for the user. You can add and revoke keys, create new keys and validate other user&#8217;s keys.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This class is currently not implemented! Anything you read here is planned, not real, at this point.</p>
+</div>
+<dl class="class">
+<dt id="keybase.KeybaseAdmin">
+<em class="property">class </em><tt class="descclassname">keybase.</tt><tt class="descname">KeybaseAdmin</tt><big>(</big><em>username</em><big>)</big><a class="reference internal" href="_modules/keybase.html#KeybaseAdmin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybaseAdmin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#keybase.Keybase" title="keybase.Keybase"><tt class="xref py py-class docutils literal"><span class="pre">keybase.Keybase</span></tt></a></p>
+<p>Extends the <a class="reference internal" href="#keybase.Keybase" title="keybase.Keybase"><tt class="xref py py-mod docutils literal"><span class="pre">keybase.Keybase</span></tt></a> class to add adminstrative functions
+to what the Keybase class can already do. Allowing you to add keys,
+revoke keys, sign keys and kill all active login sessions for a user.</p>
+<p>In order to use this class you need to be in possession of the login
+password for the keybase.io account.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This class is still not implemented. The documentation you see here
+is for future reference only.</p>
+</div>
+<dl class="method">
+<dt id="keybase.KeybaseAdmin.login">
+<tt class="descname">login</tt><big>(</big><em>password</em><big>)</big><a class="reference internal" href="_modules/keybase.html#KeybaseAdmin.login"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybaseAdmin.login" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes a two-round login procedure for a user using the supplied
+password to authenticate. The first round involves looking up the
+user and getting their salt and a challenge in the form of a login
+session ID. The second round involves computing the password hash
+and using it to answer the password challenge.</p>
+<p>If the login succeeds the method returns True and a session ID is
+stored in the instance along with all the user object details returned
+by the API when a login is successful.</p>
+<p>If login fails the method throws a <a class="reference internal" href="#keybase.KeybaseError" title="keybase.KeybaseError"><tt class="xref py py-mod docutils literal"><span class="pre">keybase.KeybaseError</span></tt></a> with all
+the details for why login failed in the message.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keybase.KeybaseAdmin.salt">
+<tt class="descname">salt</tt><a class="reference internal" href="_modules/keybase.html#KeybaseAdmin.salt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybaseAdmin.salt" title="Permalink to this definition">¶</a></dt>
+<dd><p>The salt for this login session.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keybase.KeybaseAdmin.session">
+<tt class="descname">session</tt><a class="reference internal" href="_modules/keybase.html#KeybaseAdmin.session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybaseAdmin.session" title="Permalink to this definition">¶</a></dt>
+<dd><p>The session cookie that&#8217;s tracking this login session.</p>
 </dd></dl>
 
 </dd></dl>

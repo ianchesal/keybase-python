@@ -17,9 +17,6 @@ import gnupg
 import tempfile
 import shutil
 
-KEYBASE_BASE_URL = 'https://keybase.io/_/api/'
-KEYBASE_API_VERSION = '1.0'
-
 def gpg(binary='gpg'):
     '''
     Returns the full path to the gpg instance on this machine.
@@ -61,7 +58,7 @@ def _which(executable, flags=os.X_OK):
     they were found.
     '''
     result = []
-    exts = filter(None, os.environ.get('PATHEXT', '').split(os.pathsep))
+    exts = [item for item in os.environ.get('PATHEXT', '').split(os.pathsep) if item]
     path = os.environ.get('PATH', None)
     if path is None:
         return []
@@ -99,6 +96,9 @@ class Keybase(object):
 
     '''
 
+    KEYBASE_BASE_URL = 'https://keybase.io/_/api/'
+    KEYBASE_API_VERSION = '1.0'
+
     def __init__(self, username=None):
         self._username = None
         self._user_object = None
@@ -131,9 +131,9 @@ class Keybase(object):
     @property
     def api_version(self):
         '''
-        The Keybase API version in use for this instace.
+        The Keybase API version in use for this instance.
         '''
-        return KEYBASE_API_VERSION
+        return self.KEYBASE_API_VERSION
 
     @property
     def is_bound(self):
@@ -227,8 +227,6 @@ class Keybase(object):
         Traceback (most recent call last):
         ...
         KeybaseUnboundInstanceError: Unable to fetch public key
-
-        >>>
         '''
         self._raise_unbound_error('Unable to fetch public key')
         key = None
@@ -276,7 +274,7 @@ class Keybase(object):
         if self.__lookup_performed:
             raise KeybaseLookupInvalidError(
                 'Keybase object already bound to username \'{}\''.format(self._username))
-        url = KEYBASE_BASE_URL + KEYBASE_API_VERSION + '/user/lookup.json'
+        url = self._build_url('user/lookup.json')
         payload = {'username': username}
         resp = requests.get(url, params=payload, timeout=10)
         resp.raise_for_status()
@@ -309,6 +307,27 @@ class Keybase(object):
         self._user_object = jresponse['them']
         self._username = username
         self.__lookup_performed = True
+
+    @staticmethod
+    def _build_url(endpoint):
+        '''
+        Builds a Keybase API URL for endpoint. Returns the URL as
+        a simple string.
+
+        >>> Keybase._build_url('foo')
+        'https://keybase.io/_/api/1.0/foo.json'
+        >>> Keybase._build_url('/foo/bar.json')
+        'https://keybase.io/_/api/1.0/foo/bar.json'
+        '''
+        if len(endpoint) < 1:
+            raise KeybaseError('Missing URL endpoint for API call')
+        if endpoint[0] != '/':
+            endpoint = '/' + endpoint
+        if not endpoint.endswith('.json'):
+            # All API calls end with .json (at least for our purposes)
+            endpoint = endpoint + '.json'
+        url = Keybase.KEYBASE_BASE_URL + Keybase.KEYBASE_API_VERSION + endpoint
+        return url
 
 class KeybaseAdmin(Keybase):
     '''
@@ -363,7 +382,7 @@ class KeybaseAdmin(Keybase):
         5838c199c1b825a069185d5707302693
         '''
         self._raise_unbound_error('Unable to retrieve salt from keybase.io')
-        url = KEYBASE_BASE_URL + KEYBASE_API_VERSION + '/getsalt.json'
+        url = self._build_url('getsalt.json')
         payload = {'email_or_username': self._username}
         resp = requests.get(url, params=payload, timeout=10)
         resp.raise_for_status()

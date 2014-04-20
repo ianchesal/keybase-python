@@ -61,8 +61,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../keybase.html">Using Keybase</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../keybase.html#keybase-common-methods">Keybase Common Methods</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../keybase.html#the-keybase-class-accessing-public-user-data">The <tt class="docutils literal"><span class="pre">Keybase</span></tt> Class &#8211; Accessing Public User Data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../keybase.html#the-keybaseadmin-class-manipulating-user-s-public-key-data">The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> Class &#8211; Manipulating User&#8217;s Public Key Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../keybase.html#the-keybasepublickey-class-public-key-records-from-the-keybase-io-data-store">The <tt class="docutils literal"><span class="pre">KeybasePublicKey</span></tt> Class &#8211; Public Key Records from the Keybase.io Data Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../keybase.html#the-keybaseadmin-class-manipulating-user-s-public-key-data">The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> Class &#8211; Manipulating User&#8217;s Public Key Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../keybase.html#the-keybase-error-classes">The Keybase Error Classes</a></li>
 </ul>
 </li>
@@ -120,9 +120,6 @@
 <span class="kn">import</span> <span class="nn">tempfile</span>
 <span class="kn">import</span> <span class="nn">shutil</span>
 
-<span class="n">KEYBASE_BASE_URL</span> <span class="o">=</span> <span class="s">&#39;https://keybase.io/_/api/&#39;</span>
-<span class="n">KEYBASE_API_VERSION</span> <span class="o">=</span> <span class="s">&#39;1.0&#39;</span>
-
 <div class="viewcode-block" id="gpg"><a class="viewcode-back" href="../keybase.html#keybase.gpg">[docs]</a><span class="k">def</span> <span class="nf">gpg</span><span class="p">(</span><span class="n">binary</span><span class="o">=</span><span class="s">&#39;gpg&#39;</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Returns the full path to the gpg instance on this machine.</span>
@@ -164,7 +161,7 @@
 <span class="sd">    they were found.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">exts</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;PATHEXT&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">pathsep</span><span class="p">))</span>
+    <span class="n">exts</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;PATHEXT&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">pathsep</span><span class="p">)</span> <span class="k">if</span> <span class="n">item</span><span class="p">]</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;PATH&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">[]</span>
@@ -202,6 +199,9 @@
 
 <span class="sd">    &#39;&#39;&#39;</span>
 
+    <span class="n">KEYBASE_BASE_URL</span> <span class="o">=</span> <span class="s">&#39;https://keybase.io/_/api/&#39;</span>
+    <span class="n">KEYBASE_API_VERSION</span> <span class="o">=</span> <span class="s">&#39;1.0&#39;</span>
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_username</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_user_object</span> <span class="o">=</span> <span class="bp">None</span>
@@ -234,9 +234,9 @@
     <span class="nd">@property</span>
 <div class="viewcode-block" id="Keybase.api_version"><a class="viewcode-back" href="../keybase.html#keybase.Keybase.api_version">[docs]</a>    <span class="k">def</span> <span class="nf">api_version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        The Keybase API version in use for this instace.</span>
+<span class="sd">        The Keybase API version in use for this instance.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="k">return</span> <span class="n">KEYBASE_API_VERSION</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">KEYBASE_API_VERSION</span>
 </div>
     <span class="nd">@property</span>
 <div class="viewcode-block" id="Keybase.is_bound"><a class="viewcode-back" href="../keybase.html#keybase.Keybase.is_bound">[docs]</a>    <span class="k">def</span> <span class="nf">is_bound</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -330,8 +330,6 @@
 <span class="sd">        Traceback (most recent call last):</span>
 <span class="sd">        ...</span>
 <span class="sd">        KeybaseUnboundInstanceError: Unable to fetch public key</span>
-
-<span class="sd">        &gt;&gt;&gt;</span>
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_raise_unbound_error</span><span class="p">(</span><span class="s">&#39;Unable to fetch public key&#39;</span><span class="p">)</span>
         <span class="n">key</span> <span class="o">=</span> <span class="bp">None</span>
@@ -379,7 +377,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__lookup_performed</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">KeybaseLookupInvalidError</span><span class="p">(</span>
                 <span class="s">&#39;Keybase object already bound to username </span><span class="se">\&#39;</span><span class="s">{}</span><span class="se">\&#39;</span><span class="s">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_username</span><span class="p">))</span>
-        <span class="n">url</span> <span class="o">=</span> <span class="n">KEYBASE_BASE_URL</span> <span class="o">+</span> <span class="n">KEYBASE_API_VERSION</span> <span class="o">+</span> <span class="s">&#39;/user/lookup.json&#39;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_url</span><span class="p">(</span><span class="s">&#39;user/lookup.json&#39;</span><span class="p">)</span>
         <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;username&#39;</span><span class="p">:</span> <span class="n">username</span><span class="p">}</span>
         <span class="n">resp</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">payload</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
         <span class="n">resp</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
@@ -412,7 +410,28 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_user_object</span> <span class="o">=</span> <span class="n">jresponse</span><span class="p">[</span><span class="s">&#39;them&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_username</span> <span class="o">=</span> <span class="n">username</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__lookup_performed</span> <span class="o">=</span> <span class="bp">True</span>
-</div></div>
+</div>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_build_url</span><span class="p">(</span><span class="n">endpoint</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Builds a Keybase API URL for endpoint. Returns the URL as</span>
+<span class="sd">        a simple string.</span>
+
+<span class="sd">        &gt;&gt;&gt; Keybase._build_url(&#39;foo&#39;)</span>
+<span class="sd">        &#39;https://keybase.io/_/api/1.0/foo.json&#39;</span>
+<span class="sd">        &gt;&gt;&gt; Keybase._build_url(&#39;/foo/bar.json&#39;)</span>
+<span class="sd">        &#39;https://keybase.io/_/api/1.0/foo/bar.json&#39;</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">endpoint</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">KeybaseError</span><span class="p">(</span><span class="s">&#39;Missing URL endpoint for API call&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">endpoint</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s">&#39;/&#39;</span><span class="p">:</span>
+            <span class="n">endpoint</span> <span class="o">=</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">endpoint</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.json&#39;</span><span class="p">):</span>
+            <span class="c"># All API calls end with .json (at least for our purposes)</span>
+            <span class="n">endpoint</span> <span class="o">=</span> <span class="n">endpoint</span> <span class="o">+</span> <span class="s">&#39;.json&#39;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">Keybase</span><span class="o">.</span><span class="n">KEYBASE_BASE_URL</span> <span class="o">+</span> <span class="n">Keybase</span><span class="o">.</span><span class="n">KEYBASE_API_VERSION</span> <span class="o">+</span> <span class="n">endpoint</span>
+        <span class="k">return</span> <span class="n">url</span>
+</div>
 <div class="viewcode-block" id="KeybaseAdmin"><a class="viewcode-back" href="../keybase.html#keybase.KeybaseAdmin">[docs]</a><span class="k">class</span> <span class="nc">KeybaseAdmin</span><span class="p">(</span><span class="n">Keybase</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Extends the :mod:`keybase.Keybase` class to add adminstrative functions</span>
@@ -466,7 +485,7 @@
 <span class="sd">        5838c199c1b825a069185d5707302693</span>
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_raise_unbound_error</span><span class="p">(</span><span class="s">&#39;Unable to retrieve salt from keybase.io&#39;</span><span class="p">)</span>
-        <span class="n">url</span> <span class="o">=</span> <span class="n">KEYBASE_BASE_URL</span> <span class="o">+</span> <span class="n">KEYBASE_API_VERSION</span> <span class="o">+</span> <span class="s">&#39;/getsalt.json&#39;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_url</span><span class="p">(</span><span class="s">&#39;getsalt.json&#39;</span><span class="p">)</span>
         <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;email_or_username&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_username</span><span class="p">}</span>
         <span class="n">resp</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">payload</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
         <span class="n">resp</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>

@@ -59,9 +59,10 @@
             <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="">Using Keybase</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#keybase-common-methods">Keybase Common Methods</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#the-keybase-class-accessing-public-user-data">The <tt class="docutils literal"><span class="pre">Keybase</span></tt> Class &#8211; Accessing Public User Data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#the-keybaseadmin-class-manipulating-user-s-public-key-data">The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> Class &#8211; Manipulating User&#8217;s Public Key Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#the-keybasepublickey-class-public-key-records-from-the-keybase-io-data-store">The <tt class="docutils literal"><span class="pre">KeybasePublicKey</span></tt> Class &#8211; Public Key Records from the Keybase.io Data Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-keybaseadmin-class-manipulating-user-s-public-key-data">The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> Class &#8211; Manipulating User&#8217;s Public Key Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#the-keybase-error-classes">The Keybase Error Classes</a></li>
 </ul>
 </li>
@@ -101,6 +102,27 @@
             
   <div class="section" id="using-keybase">
 <h1>Using Keybase<a class="headerlink" href="#using-keybase" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="keybase-common-methods">
+<h2>Keybase Common Methods<a class="headerlink" href="#keybase-common-methods" title="Permalink to this headline">¶</a></h2>
+<p>The following common, convenience methods exist to make it easier to work with
+GnuPG and the Keybase API in your code.</p>
+<dl class="function">
+<dt id="keybase.gpg">
+<tt class="descclassname">keybase.</tt><tt class="descname">gpg</tt><big>(</big><em>binary='gpg'</em><big>)</big><a class="reference internal" href="_modules/keybase.html#gpg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.gpg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the full path to the gpg instance on this machine.</p>
+<p>I implemented this because the <tt class="xref py py-mod docutils literal"><span class="pre">gnupg.GPG</span></tt> class was having a
+hard time dealing with the fact that my Homebrew-installed GPG instance
+was a symlink in the <tt class="docutils literal"><span class="pre">/usr/local/bin</span></tt> directory instead of a real
+path to a real file.</p>
+<p>If your GnuPG binary isn&#8217;t named <tt class="docutils literal"><span class="pre">gpg</span></tt> you can override the default
+with the <tt class="docutils literal"><span class="pre">binary=&lt;something&gt;</span></tt> option to the call to give it another
+name for the executable.</p>
+<p>On windows you shouldn&#8217;t need to supply an extension to the command
+like <tt class="docutils literal"><span class="pre">.exe</span></tt> or <tt class="docutils literal"><span class="pre">.cmd</span></tt> &#8211; it will figure it out for you.</p>
+<p>Returns <tt class="docutils literal"><span class="pre">None</span></tt> if it cannot find a gpg instance in your PATH.</p>
+</dd></dl>
+
+</div>
 <div class="section" id="the-keybase-class-accessing-public-user-data">
 <h2>The <tt class="docutils literal"><span class="pre">Keybase</span></tt> Class &#8211; Accessing Public User Data<a class="headerlink" href="#the-keybase-class-accessing-public-user-data" title="Permalink to this headline">¶</a></h2>
 <p>The <tt class="docutils literal"><span class="pre">Keybase</span></tt> class allows you to find users in the Keybase directory and access their stored public keys. Public keys let you encrypt messages and files for a user; only the person holding the private key from the pair can decrypt a file encrypted with the public key. Public keys also let you verify the signature on data; only the user with the private key can create a signature that can be validated with the specific public key.</p>
@@ -111,11 +133,12 @@
 keys. This class allows you to do interesting things with someone&#8217;s
 public key data like encrypt a message for them or verify that a message
 they signed to you was actually signed by them.</p>
-<p>If you supply a username the user&#8217;s public information will be automatically
-retrieved. If the username doesn&#8217;t exist a <a class="reference internal" href="#keybase.KeybaseUserNotFound" title="keybase.KeybaseUserNotFound"><tt class="xref py py-mod docutils literal"><span class="pre">keybase.KeybaseUserNotFound</span></tt></a>
-exception will be raised.</p>
+<p>If you supply a username the user&#8217;s public information will be
+automatically retrieved. If the username doesn&#8217;t exist a
+<a class="reference internal" href="#keybase.KeybaseUserNotFound" title="keybase.KeybaseUserNotFound"><tt class="xref py py-mod docutils literal"><span class="pre">keybase.KeybaseUserNotFound</span></tt></a> exception will be raised.</p>
 <p>If you don&#8217;t supply a username you can initiate a user lookup by
-using the <a class="reference internal" href="#keybase.Keybase.lookup" title="keybase.Keybase.lookup"><tt class="xref py py-func docutils literal"><span class="pre">keybase.Keybase.lookup()</span></tt></a> method on the object after you create
+using the <a class="reference internal" href="#keybase.Keybase.lookup" title="keybase.Keybase.lookup"><tt class="xref py py-func docutils literal"><span class="pre">keybase.Keybase.lookup()</span></tt></a> method on the object after
+you create
 it.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -124,9 +147,19 @@ store in any way. If you want to administer a user&#8217;s keys please see
 <a class="reference internal" href="#keybase.KeybaseAdmin" title="keybase.KeybaseAdmin"><tt class="xref py py-mod docutils literal"><span class="pre">keybase.KeybaseAdmin</span></tt></a>.</p>
 </div>
 <dl class="attribute">
+<dt id="keybase.Keybase.KEYBASE_API_VERSION">
+<tt class="descname">KEYBASE_API_VERSION</tt><em class="property"> = '1.0'</em><a class="headerlink" href="#keybase.Keybase.KEYBASE_API_VERSION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="keybase.Keybase.KEYBASE_BASE_URL">
+<tt class="descname">KEYBASE_BASE_URL</tt><em class="property"> = 'https://keybase.io/_/api/'</em><a class="headerlink" href="#keybase.Keybase.KEYBASE_BASE_URL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="keybase.Keybase.api_version">
 <tt class="descname">api_version</tt><a class="reference internal" href="_modules/keybase.html#Keybase.api_version"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.Keybase.api_version" title="Permalink to this definition">¶</a></dt>
-<dd><p>The Keybase API version in use for this instace.</p>
+<dd><p>The Keybase API version in use for this instance.</p>
 </dd></dl>
 
 <dl class="method">
@@ -134,7 +167,8 @@ store in any way. If you want to administer a user&#8217;s keys please see
 <tt class="descname">get_public_key</tt><big>(</big><em>keyname='primary'</em><big>)</big><a class="reference internal" href="_modules/keybase.html#Keybase.get_public_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.Keybase.get_public_key" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a key named keyname as a <a class="reference internal" href="#keybase.KeybasePublicKey" title="keybase.KeybasePublicKey"><tt class="xref py py-mod docutils literal"><span class="pre">keybase.KeybasePublicKey</span></tt></a> object
 if it exists in the current Keybase instance. Defaults to a key named
-<tt class="docutils literal"><span class="pre">primary</span></tt> if you opt not to supply a keyname when you call the method.</p>
+<tt class="docutils literal"><span class="pre">primary</span></tt> if you opt not to supply a keyname when you call the
+method.</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">k</span> <span class="o">=</span> <span class="n">Keybase</span><span class="p">(</span><span class="s">&#39;irc&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">primary_key</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">get_public_key</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">primary_key</span><span class="o">.</span><span class="n">kid</span>
@@ -155,9 +189,6 @@ exist for this user.</p>
 <span class="gr">KeybaseUnboundInstanceError</span>: <span class="n">Unable to fetch public key</span>
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;</span>
-</pre></div>
-</div>
 </dd></dl>
 
 <dl class="attribute">
@@ -170,7 +201,8 @@ False if it has yet to be associated with a specific username.</p>
 <dl class="attribute">
 <dt id="keybase.Keybase.location">
 <tt class="descname">location</tt><a class="reference internal" href="_modules/keybase.html#Keybase.location"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.Keybase.location" title="Permalink to this definition">¶</a></dt>
-<dd><p>The geographical location of the person associated with this Keybase data.</p>
+<dd><p>The geographical location of the person associated with this
+Keybase data.</p>
 </dd></dl>
 
 <dl class="method">
@@ -237,6 +269,81 @@ has no keys.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="the-keybasepublickey-class-public-key-records-from-the-keybase-io-data-store">
+<h2>The <tt class="docutils literal"><span class="pre">KeybasePublicKey</span></tt> Class &#8211; Public Key Records from the Keybase.io Data Store<a class="headerlink" href="#the-keybasepublickey-class-public-key-records-from-the-keybase-io-data-store" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="keybase.KeybasePublicKey">
+<em class="property">class </em><tt class="descclassname">keybase.</tt><tt class="descname">KeybasePublicKey</tt><big>(</big><em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/keybase.html#KeybasePublicKey"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybasePublicKey" title="Permalink to this definition">¶</a></dt>
+<dd><p>A class that represents the public key side of a public/private key pair.</p>
+<p>It is tied very closely to the keybase.io data that&#8217;s stored for public
+keys in user profiles in the data store. As such, it&#8217;s meant to be
+initialized with a hash that contains the fields seen in a keybase.io
+public key record.</p>
+<p>Under the hood it uses GnupGP&#8217;s <tt class="xref py py-class docutils literal"><span class="pre">gnupg.GPG</span></tt> class to do the
+heavy lifting. It creates a keystore that is unique to this instance of
+the class and loads the public key in to this keystore.</p>
+<p>You won&#8217;t be able to decrypt with this class because it only contains a public
+key, not a private key. But you can encrypt and and sign:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">k</span> <span class="o">=</span> <span class="n">Keybase</span><span class="p">(</span><span class="s">&#39;irc&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pkey</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">get_public_key</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pkey</span><span class="o">.</span><span class="n">key_fingerprint</span>
+<span class="go">u&#39;7cc0ce678c37fc27da3ce494f56b7a6f0a32a0b9&#39;</span>
+</pre></div>
+</div>
+<p>If a valid GPG instance cannot be created when you initialize a KeybasePublicKey
+a KeybasePublicKeyError will be raised.</p>
+<dl class="attribute">
+<dt id="keybase.KeybasePublicKey.ascii">
+<tt class="descname">ascii</tt><a class="reference internal" href="_modules/keybase.html#KeybasePublicKey.ascii"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybasePublicKey.ascii" title="Permalink to this definition">¶</a></dt>
+<dd><p>Synonym for bundle property.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keybase.KeybasePublicKey.bundle">
+<tt class="descname">bundle</tt><a class="reference internal" href="_modules/keybase.html#KeybasePublicKey.bundle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybasePublicKey.bundle" title="Permalink to this definition">¶</a></dt>
+<dd><p>The GPG key bundle. This is the ASCII representation of the public
+key data associated with the Keybase key.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keybase.KeybasePublicKey.ctime">
+<tt class="descname">ctime</tt><a class="reference internal" href="_modules/keybase.html#KeybasePublicKey.ctime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybasePublicKey.ctime" title="Permalink to this definition">¶</a></dt>
+<dd><p>The datetime this key was created in the keybase database.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keybase.KeybasePublicKey.key_fingerprint">
+<tt class="descname">key_fingerprint</tt><a class="reference internal" href="_modules/keybase.html#KeybasePublicKey.key_fingerprint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybasePublicKey.key_fingerprint" title="Permalink to this definition">¶</a></dt>
+<dd><p>The GPG fingerprint for the key.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keybase.KeybasePublicKey.key_type">
+<tt class="descname">key_type</tt><a class="reference internal" href="_modules/keybase.html#KeybasePublicKey.key_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybasePublicKey.key_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Keybase key type for this key (integer).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keybase.KeybasePublicKey.kid">
+<tt class="descname">kid</tt><a class="reference internal" href="_modules/keybase.html#KeybasePublicKey.kid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybasePublicKey.kid" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Keybase key ID for this key.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keybase.KeybasePublicKey.mtime">
+<tt class="descname">mtime</tt><a class="reference internal" href="_modules/keybase.html#KeybasePublicKey.mtime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybasePublicKey.mtime" title="Permalink to this definition">¶</a></dt>
+<dd><p>The datetime this key was last modified in the Keybase database.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="keybase.KeybasePublicKey.ukbid">
+<tt class="descname">ukbid</tt><a class="reference internal" href="_modules/keybase.html#KeybasePublicKey.ukbid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybasePublicKey.ukbid" title="Permalink to this definition">¶</a></dt>
+<dd><p>The UKB ID for the key.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="the-keybaseadmin-class-manipulating-user-s-public-key-data">
 <h2>The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> Class &#8211; Manipulating User&#8217;s Public Key Data<a class="headerlink" href="#the-keybaseadmin-class-manipulating-user-s-public-key-data" title="Permalink to this headline">¶</a></h2>
 <p>The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> class lets you authenticate as a user to the Keybase.io public data store and manipulate the stored public keys for the user. You can add and revoke keys, create new keys and validate other user&#8217;s keys.</p>
@@ -276,44 +383,15 @@ the details for why login failed in the message.</p>
 <dl class="attribute">
 <dt id="keybase.KeybaseAdmin.salt">
 <tt class="descname">salt</tt><a class="reference internal" href="_modules/keybase.html#KeybaseAdmin.salt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybaseAdmin.salt" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>The salt for this login session.</p>
+</dd></dl>
 
 <dl class="attribute">
 <dt id="keybase.KeybaseAdmin.session">
 <tt class="descname">session</tt><a class="reference internal" href="_modules/keybase.html#KeybaseAdmin.session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybaseAdmin.session" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
+<dd><p>The session cookie that&#8217;s tracking this login session.</p>
 </dd></dl>
 
-</div>
-<div class="section" id="the-keybasepublickey-class-public-key-records-from-the-keybase-io-data-store">
-<h2>The <tt class="docutils literal"><span class="pre">KeybasePublicKey</span></tt> Class &#8211; Public Key Records from the Keybase.io Data Store<a class="headerlink" href="#the-keybasepublickey-class-public-key-records-from-the-keybase-io-data-store" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="keybase.KeybasePublicKey">
-<em class="property">class </em><tt class="descclassname">keybase.</tt><tt class="descname">KeybasePublicKey</tt><big>(</big><em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/keybase.html#KeybasePublicKey"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#keybase.KeybasePublicKey" title="Permalink to this definition">¶</a></dt>
-<dd><p>A class that represents the public key side of a public/private key pair.</p>
-<p>It is tied very closely to the keybase.io data that&#8217;s stored for public
-keys in user profiles in the data store. As such, it&#8217;s meant to be
-initialized with a hash that contains the fields seen in a keybase.io
-public key record.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">key_data</span> <span class="o">=</span> <span class="p">{</span>
-<span class="gp">... </span><span class="s">&quot;kid&quot;</span><span class="p">:</span> <span class="s">&quot;0101a55950dc685d1ae098b5e261edc6aa1ac4835e82e5c7eef6aad98c12c4fdaef50a&quot;</span><span class="p">,</span>
-<span class="gp">... </span><span class="s">&quot;key_type&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-<span class="gp">... </span><span class="s">&quot;bundle&quot;</span><span class="p">:</span> <span class="s">&quot;-----BEGIN PGP PUBLIC KEY BLOCK----- KJ234990jkdjlasdkfj093lkjdkfjol -----END PGP PUBLIC KEY BLOCK-----&quot;</span><span class="p">,</span>
-<span class="gp">... </span><span class="s">&quot;mtime&quot;</span><span class="p">:</span> <span class="mi">1396741239</span><span class="p">,</span>
-<span class="gp">... </span><span class="s">&quot;ctime&quot;</span><span class="p">:</span> <span class="mi">1396741239</span><span class="p">,</span>
-<span class="gp">... </span><span class="s">&quot;ukbid&quot;</span><span class="p">:</span> <span class="s">&quot;c783ab0c262f38837d325d8be4e5ae11&quot;</span><span class="p">,</span>
-<span class="gp">... </span><span class="s">&quot;key_fingerprint&quot;</span><span class="p">:</span> <span class="s">&quot;ef8febc949b9d15057f6d636102c7b498133f0fd&quot;</span>
-<span class="gp">... </span><span class="p">}</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">kpk</span> <span class="o">=</span> <span class="n">KeybasePublicKey</span><span class="p">(</span><span class="o">**</span><span class="n">key_data</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">kpk</span><span class="o">.</span><span class="n">kid</span> <span class="o">==</span> <span class="n">key_data</span><span class="p">[</span><span class="s">&#39;kid&#39;</span><span class="p">]</span>
-<span class="go">True</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">kpk</span><span class="o">.</span><span class="n">bundle</span> <span class="o">==</span> <span class="n">key_data</span><span class="p">[</span><span class="s">&#39;bundle&#39;</span><span class="p">]</span>
-<span class="go">True</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">kpk</span><span class="o">.</span><span class="n">key_fingerprint</span> <span class="o">==</span> <span class="n">key_data</span><span class="p">[</span><span class="s">&#39;key_fingerprint&#39;</span><span class="p">]</span>
-<span class="go">True</span>
-</pre></div>
-</div>
 </dd></dl>
 
 </div>

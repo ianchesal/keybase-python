@@ -4,6 +4,7 @@
 .PHONY: docs release clean
 
 clean:
+	rm -rf .tox
 	rm -rf test/__pycache__
 
 test: clean

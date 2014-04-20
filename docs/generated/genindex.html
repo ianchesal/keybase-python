@@ -59,9 +59,10 @@
             <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="keybase.html">Using Keybase</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="keybase.html#keybase-common-methods">Keybase Common Methods</a></li>
 <li class="toctree-l2"><a class="reference internal" href="keybase.html#the-keybase-class-accessing-public-user-data">The <tt class="docutils literal"><span class="pre">Keybase</span></tt> Class &#8211; Accessing Public User Data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="keybase.html#the-keybaseadmin-class-manipulating-user-s-public-key-data">The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> Class &#8211; Manipulating User&#8217;s Public Key Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="keybase.html#the-keybasepublickey-class-public-key-records-from-the-keybase-io-data-store">The <tt class="docutils literal"><span class="pre">KeybasePublicKey</span></tt> Class &#8211; Public Key Records from the Keybase.io Data Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="keybase.html#the-keybaseadmin-class-manipulating-user-s-public-key-data">The <tt class="docutils literal"><span class="pre">KeybaseAdmin</span></tt> Class &#8211; Manipulating User&#8217;s Public Key Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="keybase.html#the-keybase-error-classes">The Keybase Error Classes</a></li>
 </ul>
 </li>
@@ -102,10 +103,13 @@
 
 <div class="genindex-jumpbox">
  <a href="#A"><strong>A</strong></a>
+ | <a href="#B"><strong>B</strong></a>
+ | <a href="#C"><strong>C</strong></a>
  | <a href="#G"><strong>G</strong></a>
  | <a href="#I"><strong>I</strong></a>
  | <a href="#K"><strong>K</strong></a>
  | <a href="#L"><strong>L</strong></a>
+ | <a href="#M"><strong>M</strong></a>
  | <a href="#N"><strong>N</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#S"><strong>S</strong></a>
@@ -120,6 +124,32 @@
   </dt>
 
   </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="keybase.html#keybase.KeybasePublicKey.ascii">ascii (keybase.KeybasePublicKey attribute)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="B">B</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="keybase.html#keybase.KeybasePublicKey.bundle">bundle (keybase.KeybasePublicKey attribute)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="C">C</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="keybase.html#keybase.KeybasePublicKey.ctime">ctime (keybase.KeybasePublicKey attribute)</a>
+  </dt>
+
+  </dl></td>
 </tr></table>
 
 <h2 id="G">G</h2>
@@ -127,6 +157,12 @@
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="keybase.html#keybase.Keybase.get_public_key">get_public_key() (keybase.Keybase method)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="keybase.html#keybase.gpg">gpg() (in module keybase)</a>
   </dt>
 
   </dl></td>
@@ -146,13 +182,31 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
+  <dt><a href="keybase.html#keybase.KeybasePublicKey.key_fingerprint">key_fingerprint (keybase.KeybasePublicKey attribute)</a>
+  </dt>
+
+      
+  <dt><a href="keybase.html#keybase.KeybasePublicKey.key_type">key_type (keybase.KeybasePublicKey attribute)</a>
+  </dt>
+
+      
   <dt><a href="keybase.html#keybase.Keybase">Keybase (class in keybase)</a>
+  </dt>
+
+      
+  <dt><a href="keybase.html#keybase.Keybase.KEYBASE_API_VERSION">KEYBASE_API_VERSION (keybase.Keybase attribute)</a>
+  </dt>
+
+      
+  <dt><a href="keybase.html#keybase.Keybase.KEYBASE_BASE_URL">KEYBASE_BASE_URL (keybase.Keybase attribute)</a>
   </dt>
 
       
   <dt><a href="keybase.html#keybase.KeybaseAdmin">KeybaseAdmin (class in keybase)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="keybase.html#keybase.KeybaseError">KeybaseError (class in keybase)</a>
   </dt>
@@ -161,8 +215,6 @@
   <dt><a href="keybase.html#keybase.KeybaseLookupInvalidError">KeybaseLookupInvalidError (class in keybase)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="keybase.html#keybase.KeybasePublicKey">KeybasePublicKey (class in keybase)</a>
   </dt>
@@ -173,6 +225,10 @@
 
       
   <dt><a href="keybase.html#keybase.KeybaseUserNotFound">KeybaseUserNotFound (class in keybase)</a>
+  </dt>
+
+      
+  <dt><a href="keybase.html#keybase.KeybasePublicKey.kid">kid (keybase.KeybasePublicKey attribute)</a>
   </dt>
 
   </dl></td>
@@ -193,6 +249,16 @@
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="keybase.html#keybase.Keybase.lookup">lookup() (keybase.Keybase method)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="M">M</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="keybase.html#keybase.KeybasePublicKey.mtime">mtime (keybase.KeybasePublicKey attribute)</a>
   </dt>
 
   </dl></td>
@@ -236,6 +302,12 @@
 
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="keybase.html#keybase.KeybasePublicKey.ukbid">ukbid (keybase.KeybasePublicKey attribute)</a>
+  </dt>
+
+  </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="keybase.html#keybase.Keybase.username">username (keybase.Keybase attribute)</a>

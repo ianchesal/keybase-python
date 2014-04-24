@@ -7,7 +7,7 @@ from __future__ import absolute_import
 from . import keybase
 from .keybase import Keybase, KeybaseAdmin, KeybasePublicKey, gpg
 
-__version__ = '0.0.1'
+__version__ = '0.1.0'
 
 # do not set __package__ = "keybase", else we will end up with
 # keybase.<*allofthethings*>

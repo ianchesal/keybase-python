@@ -1,14 +1,17 @@
 '''
-Keybase is two things.
-
-1. a public, publicly-auditable directory of keys and identity proofs
-2. a protocol (this API) for accessing the directory
-
-This module provides a class-based interface to the keybase.io API.
-
 .. moduleauthor:: Ian Chesal <ian.chesal@gmail.com>
 '''
 
-from . import keybase
+from __future__ import absolute_import
 
-__version__ = '0.0.1'
+from . import keybase
+from .keybase import Keybase, KeybaseAdmin, KeybasePublicKey, gpg
+
+__version__ = '0.1.0'
+
+# do not set __package__ = "keybase", else we will end up with
+# keybase.<*allofthethings*>
+__all__ = ['Keybase', 'KeybaseAdmin', 'KeybasePublicKey']
+
+# avoid the "from keybase import keybase" idiom
+del keybase

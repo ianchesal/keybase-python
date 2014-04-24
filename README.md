@@ -15,7 +15,7 @@ Keybase has an existing command line written in Node.js as well as [a well docum
 
 ## Documentation
 
-The official documentation for the project can be found here: https://readthedocs.org/projects/keybase-python-api/
+The official documentation for the project can be found here: http://keybase-python-api.readthedocs.org/en/latest/
 
 ### Installation
 
@@ -25,16 +25,46 @@ NB: I haven't pushed this to PyPI yet so the above doesn't work just quite yet. 
 
 ## Examples
 
-See the [test directory](test/) for examples of how to use the keybase Python API to look up users in the keybase data store, encrypt files for them and verify content that the users have signed.
+See the [official documentation](http://keybase-python-api.readthedocs.org/en/latest/) for more examples of how to use the API.
 
-### Get a Users Credentials
+### Get a User's Credentials
 
-	>>> k = Keybase('irc')
-	>>> primary_key = k.get_public_key()
-	>>> primary_key.kid
+	kbase = Keybase('irc')
+	primary_key = kbase.get_public_key()
+	primary_key.kid
 	u'0101f56ecf27564e5bec1c50250d09efe963cad3138d4dc7f4646c77f6008c1e23cf0a'
 
-You can use the `ascii` or `bundle` propert on the `primary_key` object in the above example to get an ASCII version of their primary public key, suitable for feeding in to a signature verification or encryption routine.
+You can use the `ascii` or `bundle` properties on the `primary_key` object in the above example to get an ASCII version of their primary public key, suitable for feeding in to a signature verification or encryption routine.
+
+### Use a User's Public Key to Verify the Signature on a Signed File
+
+Where the file was signed with a `gpg` command like so:
+
+    gpg -u keybase.io/irc --sign helloworld.txt
+
+So there is one, binary, file `helloworld.txt.gpg` that contains both the data and the signature on the data to verify.
+
+    kbase = Keybase('irc')
+    with open('helloworld.txt.gpg', 'rb') as fdata:
+    	verified = kbase.verify_file_embedded(fdata)
+    	assert verified
+
+Where the file was signed with a `gpg` command like so:
+
+	gpg -u keybase.io/irc --detach-sign helloworld.txt
+
+So there are two files:
+
+1. The original data file; and
+1. The detached `.sig` file that contains the signature for the data.
+
+In this case:
+
+    kbase = Keybase('irc')
+    fname = 'helloworld.txt'
+    signame = 'helloworld.txt.sig'
+    verified = kbase.verify_file_embedded(fname, signame)
+    assert verified
 
 ## Development
 

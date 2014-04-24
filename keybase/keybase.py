@@ -1,13 +1,76 @@
-'''Python class interface to the keybase.io API.'''
+'''
+.. module:: keybase
+   :platform: Unix, Windows
+   :synopsis: Python class interface to the keybase.io API.
+
+.. moduleauthor:: Ian Chesal <ian.chesal@gmail.com>
+
+'''
 
 #pylint: disable=R0902
+#pylint: disable=C0301
 
 import datetime
 import requests
 import os
+import gnupg
+import tempfile
+import shutil
 
-KEYBASE_BASE_URL = 'https://keybase.io/_/api/'
-KEYBASE_API_VERSION = '1.0'
+def gpg(binary='gpg'):
+    '''
+    Returns the full path to the gpg instance on this machine.
+
+    I implemented this because the :mod:`gnupg.GPG` class was having a
+    hard time dealing with the fact that my Homebrew-installed GPG instance
+    was a symlink in the ``/usr/local/bin`` directory instead of a real
+    path to a real file.
+
+    If your GnuPG binary isn't named ``gpg`` you can override the default
+    with the ``binary=<something>`` option to the call to give it another
+    name for the executable.
+
+    On windows you shouldn't need to supply an extension to the command
+    like ``.exe`` or ``.cmd`` -- it will figure it out for you.
+
+    Returns ``None`` if it cannot find a gpg instance in your PATH.
+    '''
+    mygpg = _which(binary)
+    if len(mygpg) > 0:
+        return os.path.realpath(mygpg[0])
+    return None
+
+def _which(executable, flags=os.X_OK):
+    '''
+    Borrowed from Twisted's :mod:twisted.python.proutils .
+
+    Search PATH for executable files with the given name.
+
+    On newer versions of MS-Windows, the PATHEXT environment variable will be
+    set to the list of file extensions for files considered executable. This
+    will normally include things like ".EXE". This fuction will also find files
+    with the given name ending with any of these extensions.
+
+    On MS-Windows the only flag that has any meaning is os.F_OK. Any other
+    flags will be ignored.
+
+    Returns a list of the full paths to files found, in the order in which
+    they were found.
+    '''
+    result = []
+    exts = [item for item in os.environ.get('PATHEXT', '').split(os.pathsep) if item]
+    path = os.environ.get('PATH', None)
+    if path is None:
+        return []
+    for tpath in os.environ.get('PATH', '').split(os.pathsep):
+        tpath = os.path.join(tpath, executable)
+        if os.access(tpath, flags):
+            result.append(tpath)
+        for ext in exts:
+            pext = tpath + ext
+            if os.access(pext, flags):
+                result.append(tpath)
+    return result
 
 class Keybase(object):
     '''
@@ -16,23 +79,27 @@ class Keybase(object):
     public key data like encrypt a message for them or verify that a message
     they signed to you was actually signed by them.
 
-    It does not allow you to manipulate the key data in the keybase.io data
-    store in any way. If you want to administer a user's keys please see the
-    KeybaseAdmin class.
+    If you supply a username the user's public information will be
+    automatically retrieved. If the username doesn't exist a
+    :mod:`keybase.KeybaseUserNotFound` exception will be raised.
+
+    If you don't supply a username you can initiate a user lookup by
+    using the :func:`keybase.Keybase.lookup` method on the object after
+    you create
+    it.
+
+    .. note::
+
+        It does not allow you to manipulate the key data in the keybase.io data
+        store in any way. If you want to administer a user's keys please see
+        :mod:`keybase.KeybaseAdmin`.
+
     '''
 
+    KEYBASE_BASE_URL = 'https://keybase.io/_/api/'
+    KEYBASE_API_VERSION = '1.0'
+
     def __init__(self, username=None):
-        '''
-        Create a new, empty instance of a Keybase object.
-
-        If you supply a username the user's public information will be
-        automatically retrieve. If the username doesn't exist a
-        KeybaseUserNotFound exception will be raised.
-
-        If you don't supply a username you can initiate a user lookup by
-        using the lookup(username) method on the object after you create
-        it.
-        '''
         self._username = None
         self._user_object = None
         self.__lookup_performed = False
@@ -41,22 +108,39 @@ class Keybase(object):
 
     @property
     def name(self):
+        '''
+        The full name of the person associated with this Keybase data.
+        '''
         return self._section_getter('profile', 'full_name')
 
     @property
     def location(self):
+        '''
+        The geographical location of the person associated with this
+        Keybase data.
+        '''
         return self._section_getter('profile', 'location')
 
     @property
     def username(self):
+        '''
+        The username of the person associated with this Keybase data.
+        '''
         return self._username
 
     @property
     def api_version(self):
-        return KEYBASE_API_VERSION
+        '''
+        The Keybase API version in use for this instance.
+        '''
+        return self.KEYBASE_API_VERSION
 
     @property
     def is_bound(self):
+        '''
+        Returns True if this Keybase object instance is bound to a user or
+        False if it has yet to be associated with a specific username.
+        '''
         if self._username and self._user_object and self.__lookup_performed:
             return True
         return False
@@ -64,12 +148,12 @@ class Keybase(object):
     @property
     def public_keys(self):
         '''
-        A tuple of all the available public keys available for this
-        account. An empty tuple is returned if the instance isn't
-        bound to a user or the user has no keys.
+        A tuple of all the public keys available for this account. An empty
+        tuple is returned if the instance isn't bound to a user or the user
+        has no keys.
 
-        >>> k = Keybase('irc')
-        >>> k.public_keys
+        >>> kbase = Keybase('irc')
+        >>> kbase.public_keys
         (u'primary',)
         '''
         pkeys = list()
@@ -86,19 +170,19 @@ class Keybase(object):
         section exists in the user data object and the key exists in
         that section in the user data object:
 
-        >>> k = Keybase('irc')
-        >>> k._section_getter('profile', 'full_name')
+        >>> kbase = Keybase('irc')
+        >>> kbase._section_getter('profile', 'full_name')
         u'Ian Chesal'
 
         Otherwise it returns None if the section doesn't exist:
 
-        >>> if not k._section_getter('invalidsectionname', 'full_name'):
+        >>> if not kbase._section_getter('invalidsectionname', 'full_name'):
         ...    print 'Section not found!'
         Section not found!
 
         Or the key doesn't exist in the section:
 
-        >>> if not k._section_getter('profile', 'invalidkeyname'):
+        >>> if not kbase._section_getter('profile', 'invalidkeyname'):
         ...    print 'Key not found!'
         Key not found!
 
@@ -111,39 +195,38 @@ class Keybase(object):
 
     def _raise_unbound_error(self, message):
         '''
-        Raises a KeybaseUnboundInstanceError if the instance isn't currently
-        bound to a real user in the keybase.io data store. Appends message
-        to the error when it's raised.
+        Raises a :mod:`keybase.`KeybaseUnboundInstanceError` if the instance
+        isn't currently bound to a real user in the keybase.io data store.
+        Appends message to the error when it's raised.
         '''
         if not self.is_bound:
             raise KeybaseUnboundInstanceError(message)
 
     def get_public_key(self, keyname='primary'):
         '''
-        Returns a key named keyname as a KeybasePublicKey object if it exists
-        in the current Keybase instance. Defaults to a key named 'primary' if
-        you opt not to supply a keyname when you call the method.
+        Returns a key named keyname as a :mod:`keybase.KeybasePublicKey` object
+        if it exists in the current Keybase instance. Defaults to a key named
+        ``primary`` if you opt not to supply a keyname when you call the
+        method.
 
-        >>> k = Keybase('irc')
-        >>> primary_key = k.get_public_key()
+        >>> kbase = Keybase('irc')
+        >>> primary_key = kbase.get_public_key()
         >>> primary_key.kid
         u'0101f56ecf27564e5bec1c50250d09efe963cad3138d4dc7f4646c77f6008c1e23cf0a'
 
         Otherwise it returns None if a key by the name of keyname doesn't
         exist for this user.
 
-        >>> k.get_public_key('thiskeydoesnotexist')
+        >>> kbase.get_public_key('thiskeydoesnotexist')
 
         If the instance hasn't been bound to a username yet it throws a
-        KeybaseUnboundInstanceError.
+        :mod:`keybase.KeybaseUnboundInstanceError`.
 
-        >>> k = Keybase()
-        >>> k.get_public_key()
+        >>> kbase = Keybase()
+        >>> kbase.get_public_key()
         Traceback (most recent call last):
         ...
         KeybaseUnboundInstanceError: Unable to fetch public key
-
-        >>>
         '''
         self._raise_unbound_error('Unable to fetch public key')
         key = None
@@ -158,17 +241,17 @@ class Keybase(object):
         this Keybase class instance with the user's public keybase.io
         details.
 
-        >>> k = Keybase()
-        >>> k.username
-        >>> k.lookup('irc')
-        >>> k.username
+        >>> kbase = Keybase()
+        >>> kbase.username
+        >>> kbase.lookup('irc')
+        >>> kbase.username
         'irc'
 
         The lookup() method can be called until the first successful user
         is found in keybase.io. After that, subsequent lookup calls will
-        raise a KeybaseLookupInvalidError exception:
-        
-        >>> k.lookup('ab')
+        raise a :mod:`keybase.KeybaseLookupInvalidError` exception:
+
+        >>> kbase.lookup('ab')
         Traceback (most recent call last):
         ...
         KeybaseLookupInvalidError: Keybase object already bound to username 'irc'
@@ -177,26 +260,25 @@ class Keybase(object):
         the user using the login() method after successfully looking the
         user up in keybase.io.
 
-        If the user cannot be found a KeybaseUserNotFound exception is
-        raised:
+        If the user cannot be found a :mod:`keybase.KeybaseUserNotFound`
+        exception is raised:
 
-        >>> k2 = Keybase()
-        >>> k2.lookup('abcdefghijklmno123')
+        >>> kbase2 = Keybase()
+        >>> kbase2.lookup('abcdefghijklmno123')
         Traceback (most recent call last):
         ...
         KeybaseUserNotFound: ('User abcdefghijklmno123 not found', {'url': u'https://keybase.io/_/api/1.0/user/lookup.json?username=abcdefghijklmno123'})
-        
         '''
         # If this object is already initialized then the user shouldn't
         # be calling this method a second time.
         if self.__lookup_performed:
             raise KeybaseLookupInvalidError(
                 'Keybase object already bound to username \'{}\''.format(self._username))
-        url = KEYBASE_BASE_URL + KEYBASE_API_VERSION + '/user/lookup.json'
-        payload = { 'username': username }
-        r = requests.get(url, params=payload, timeout=10)
-        r.raise_for_status()    
-        jresponse = r.json()
+        url = self._build_url('user/lookup.json')
+        payload = {'username': username}
+        resp = requests.get(url, params=payload, timeout=10)
+        resp.raise_for_status()
+        jresponse = resp.json()
         # Pendantic searching of the status section of the API's JSON
         # response. We could just leave it up to the 'them' section
         # existing or not but future API changes may require that we
@@ -205,37 +287,132 @@ class Keybase(object):
         # for that now.
         if not 'status' in jresponse or not 'name' in jresponse['status']:
             raise KeybaseError('Malformed API response to user/lookup.json request', {
-                'url': r.url,
-                'response': r.text
+                'url': resp.url,
+                'response': resp.text
                 })
         if jresponse['status']['name'] == 'NOT_FOUND':
             raise KeybaseUserNotFound('User {} not found'.format(username), {
-                'url': r.url,
+                'url': resp.url,
                 })
         if jresponse['status']['name'] == 'INPUT_ERROR':
             raise KeybaseUserNotFound('User {} not found'.format(username), {
-                'url': r.url,
+                'url': resp.url,
                 })
         if not 'them' in jresponse:
             raise KeybaseError('Malformed API response to user/lookup.json request', {
-                'url': r.url,
-                'response': r.text
+                'url': resp.url,
+                'response': resp.text
                 })
         # Initialize this user from the 'them' part of the reponse.
         self._user_object = jresponse['them']
         self._username = username
         self.__lookup_performed = True
 
+    def verify(self, data, throw_error=False):
+        '''
+        Equivalent to:::
+
+            kbase = Keybase('irc')
+            pkey = kbase.get_public_key()
+            verified = pkey.verify(some_message)
+            assert verified
+
+        It's a convenience method on the Keybase object to do data
+        verification with the primary key.
+
+        For more information see :mod:`keybase.KeybasePublicKey`.
+
+        If the instance hasn't been bound to a username yet it throws a
+        :mod:`keybase.KeybaseUnboundInstanceError`.
+        '''
+        self._raise_unbound_error('Unable to fetch public key')
+        pkey = self.get_public_key()
+        return pkey.verify(
+            data,
+            throw_error=throw_error)
+
+    def verify_file_embedded(self, data, throw_error=False):
+        '''
+        Equivalent to:::
+
+            kbase = Keybase('irc')
+            pkey = kbase.get_public_key()
+            with open('somefile.txt.gpg', 'rb') as fdata:
+                verified = pkey.verify_file_embedded(fdata)
+                assert verified
+
+        It's a convenience method on the Keybase object to do data
+        verification with the primary key.
+
+        For more information see :mod:`keybase.KeybasePublicKey`.
+
+        If the instance hasn't been bound to a username yet it throws a
+        :mod:`keybase.KeybaseUnboundInstanceError`.
+        '''
+        self._raise_unbound_error('Unable to fetch public key')
+        pkey = self.get_public_key()
+        return pkey.verify_file_embedded(
+            data,
+            throw_error=throw_error)
+
+    def verify_file_detached(self, datafname, sigfname, throw_error=False):
+        '''
+        Equivalent to:::
+
+            kbase = Keybase('irc')
+            pkey = kbase.get_public_key()
+            verified = pkey.verify_file_detached(fname, signame)
+            assert verified
+
+        It's a convenience method on the Keybase object to do data
+        verification with the primary key.
+
+        For more information see :mod:`keybase.KeybasePublicKey`.
+
+        If the instance hasn't been bound to a username yet it throws a
+        :mod:`keybase.KeybaseUnboundInstanceError`.
+        '''
+        self._raise_unbound_error('Unable to fetch public key')
+        pkey = self.get_public_key()
+        return pkey.verify_file_detached(
+            datafname,
+            sigfname,
+            throw_error=throw_error)
+
+    @staticmethod
+    def _build_url(endpoint):
+        '''
+        Builds a Keybase API URL for endpoint. Returns the URL as
+        a simple string.
+
+        >>> Keybase._build_url('foo')
+        'https://keybase.io/_/api/1.0/foo.json'
+        >>> Keybase._build_url('/foo/bar.json')
+        'https://keybase.io/_/api/1.0/foo/bar.json'
+        '''
+        if len(endpoint) < 1:
+            raise KeybaseError('Missing URL endpoint for API call')
+        if endpoint[0] != '/':
+            endpoint = '/' + endpoint
+        if not endpoint.endswith('.json'):
+            # All API calls end with .json (at least for our purposes)
+            endpoint = endpoint + '.json'
+        url = Keybase.KEYBASE_BASE_URL + Keybase.KEYBASE_API_VERSION + endpoint
+        return url
+
 class KeybaseAdmin(Keybase):
     '''
-    Extends the Keybase class to add adminstrative functions to what the
-    Keybase class can already do. Allowing you to add keys, revoke keys,
-    sign keys and kill all active login sessions for a user.
+    Extends the :mod:`keybase.Keybase` class to add adminstrative functions
+    to what the Keybase class can already do. Allowing you to add keys,
+    revoke keys, sign keys and kill all active login sessions for a user.
 
     In order to use this class you need to be in possession of the login
     password for the keybase.io account.
 
-    TODO: Implement this class.
+    .. note::
+
+        This class is still not implemented. The documentation you see here
+        is for future reference only.
     '''
 
     def __init__(self, username):
@@ -245,10 +422,16 @@ class KeybaseAdmin(Keybase):
 
     @property
     def salt(self):
+        '''
+        The salt for this login session.
+        '''
         return self.__salt
 
     @property
     def session(self):
+        '''
+        The session cookie that's tracking this login session.
+        '''
         return self.__session_cookie
 
     def _get_salt(self):
@@ -262,23 +445,23 @@ class KeybaseAdmin(Keybase):
 
         If the object has no username property an KeybaseError is thrown.
 
-        >>> k = KeybaseAdmin(username='irc')
-        >>> print k.salt
+        >>> kbase = KeybaseAdmin(username='irc')
+        >>> print kbase.salt
         None
-        >>> login_session = k._get_salt()
-        >>> print k.salt
+        >>> login_session = kbase._get_salt()
+        >>> print kbase.salt
         5838c199c1b825a069185d5707302693
         '''
         self._raise_unbound_error('Unable to retrieve salt from keybase.io')
-        url = KEYBASE_BASE_URL + KEYBASE_API_VERSION + '/getsalt.json'
-        payload = { 'email_or_username': self._username }
-        r = requests.get(url, params=payload, timeout=10)
-        r.raise_for_status()
-        jresponse = r.json()
+        url = self._build_url('getsalt.json')
+        payload = {'email_or_username': self._username}
+        resp = requests.get(url, params=payload, timeout=10)
+        resp.raise_for_status()
+        jresponse = resp.json()
         if not 'salt' in jresponse:
-            raise KeybaseError('_get_salt(): No salt value returned for login {0}'.format(login_id))
+            raise KeybaseError('_get_salt(): No salt value returned for login {0}'.format(self._username))
         if not 'login_session' in jresponse:
-            raise KeybaseError('_get_salt(): No login_session value returned for login {0}'.format(login_id))
+            raise KeybaseError('_get_salt(): No login_session value returned for login {0}'.format(self._username))
         self.__salt = jresponse['salt']
         return jresponse['login_session']
 
@@ -294,12 +477,11 @@ class KeybaseAdmin(Keybase):
         stored in the instance along with all the user object details returned
         by the API when a login is successful.
 
-        If login fails the method throws a KeybaseError with all the details
-        for why login failed in the message.
+        If login fails the method throws a :mod:`keybase.KeybaseError` with all
+        the details for why login failed in the message.
         '''
         self._raise_unbound_error('Unable to log in to keybase.io')
         login_session = self._get_salt()
-        # TODO: Lots of work here!
 
 class KeybasePublicKey(object):
     '''
@@ -310,23 +492,20 @@ class KeybasePublicKey(object):
     initialized with a hash that contains the fields seen in a keybase.io
     public key record.
 
-    >>> key_data = {
-    ... "kid": "0101a55950dc685d1ae098b5e261edc6aa1ac4835e82e5c7eef6aad98c12c4fdaef50a",
-    ... "key_type": 1,
-    ... "bundle": "-----BEGIN PGP PUBLIC KEY BLOCK----- KJ234990jkdjlasdkfj093lkjdkfjol -----END PGP PUBLIC KEY BLOCK-----",
-    ... "mtime": 1396741239,
-    ... "ctime": 1396741239,
-    ... "ukbid": "c783ab0c262f38837d325d8be4e5ae11",
-    ... "key_fingerprint": "ef8febc949b9d15057f6d636102c7b498133f0fd"
-    ... }
-    >>> kpk = KeybasePublicKey(**key_data)
-    >>> kpk.kid == key_data['kid']
-    True
-    >>> kpk.bundle == key_data['bundle']
-    True
-    >>> kpk.key_fingerprint == key_data['key_fingerprint']
-    True
+    Under the hood it uses GnupGP's :py:class:`gnupg.GPG` class to do the
+    heavy lifting. It creates a keystore that is unique to this instance of
+    the class and loads the public key in to this keystore.
 
+    You won't be able to decrypt with this class because it only contains a public
+    key, not a private key. But you can encrypt and and sign:
+
+    >>> kbase = Keybase('irc')
+    >>> pkey = kbase.get_public_key()
+    >>> pkey.key_fingerprint
+    u'7cc0ce678c37fc27da3ce494f56b7a6f0a32a0b9'
+
+    If a valid GPG instance cannot be created when you initialize a KeybasePublicKey
+    a KeybasePublicKeyError will be raised.
     '''
     def __init__(self, **kwargs):
         self.__data = dict()
@@ -335,38 +514,91 @@ class KeybasePublicKey(object):
                 self.__data[key] = datetime.datetime.fromtimestamp(int(value))
             else:
                 self.__data[key] = value
+        self.__gpg = None
+        self.__tempdir = tempfile.mkdtemp(suffix='.keybase')
+        if self.bundle:
+            self.__gpg = gnupg.GPG(
+                binary=gpg(),
+                homedir=self.__tempdir,
+                verbose=False,
+                use_agent=False)
+            import_result = self.__gpg.import_keys(self.bundle)
+            # TODO: For some reason importing a single key results in two result
+            # entries in the ImportResult.result and ImportResult.fingerprints
+            # arrays. I've asked the gnupg devs why this is and I'm waiting to
+            # hear back. For now we expect one and only one key to exist in our
+            # keyring after import so we'll check all of them an assert they're
+            # all carrying the same fingerprint as the key that was loaded in to
+            # this instance.
+            for fprint in import_result.fingerprints:
+                if fprint.lower() != self.key_fingerprint:
+                    raise KeybasePublicKeyError('A serious security error has occured: fingerprint mismatch on key import')
+        else:
+            raise KeybasePublicKeyError('Missing PGP key bundle in init data')
+        if not self.__gpg:
+            raise KeybasePublicKeyError('Unable to create Keybase public key instance')
+
+    def __del__(self):
+        # This makes sure the keyring we created is destroyed when the object
+        # gets garbage collected.
+        shutil.rmtree(self.__tempdir, ignore_errors=True)
 
     @property
     def kid(self):
+        '''
+        The Keybase key ID for this key.
+        '''
         return self.__property_getter('kid')
 
     @property
     def key_type(self):
+        '''
+        The Keybase key type for this key (integer).
+        '''
         return self.__property_getter('key_type')
 
     @property
     def bundle(self):
+        '''
+        The GPG key bundle. This is the ASCII representation of the public
+        key data associated with the Keybase key.
+        '''
         return self.__property_getter('bundle')
 
     @property
     def ascii(self):
+        '''
+        Synonym for bundle property.
+        '''
         return self.__property_getter('bundle')
 
     @property
     def mtime(self):
+        '''
+        The datetime this key was last modified in the Keybase database.
+        '''
         return self.__property_getter('mtime')
 
     @property
     def ctime(self):
+        '''
+        The datetime this key was created in the keybase database.
+        '''
         return self.__property_getter('ctime')
 
     @property
     def ukbid(self):
+        '''
+        The UKB ID for the key.
+        '''
         return self.__property_getter('ukbid')
 
     @property
     def key_fingerprint(self):
-        return self.__property_getter('key_fingerprint')
+        '''
+        The GPG fingerprint for the key.
+        '''
+        return self.__property_getter('key_fingerprint').lower()
 
     def __property_getter(self, prop):
         '''
@@ -378,6 +610,163 @@ class KeybasePublicKey(object):
         if prop in self.__data:
             value = self.__data[prop]
         return value
+
+    def verify(self, data, throw_error=False):
+        '''
+        Verify the signature on the contents of the string ``data``.
+        Returns True if the signature was verified with the key, False
+        if it was not. If you supply ``throw_error=True`` to the call then
+        it will throw a KeybasePublicKeyVerifyError on verification failure
+        with a status message that tells you more about why verification
+        failed.
+
+        Failure status messages are:
+
+        * invalid gpg key
+        * signature bad
+        * signature error
+        * decryption failed
+        * no public key
+        * key exp
+        * key rev
+
+        For more information what these messages mean please see the
+        :py:class:`gnupg._parsers.Verify` manual page.
+
+        >>> message_good = """
+        ... -----BEGIN PGP SIGNED MESSAGE-----
+        ... Hash: SHA1
+        ...
+        ... Hello, world!
+        ... -----BEGIN PGP SIGNATURE-----
+        ... Version: GnuPG v1
+        ...
+        ... iQEcBAEBAgAGBQJTWHSVAAoJEO7zMmcMHMCAYpEH/j2hJApaHXSj0ddgbrmUdJ2z
+        ... vZ5DFDR9syTPHrwtRJLPH7tgdiAtUpyXLozL321JIR7sExzONl7IKdpH1Qn0y1I/
+        ... h6mV0Dm+AAJXWtbn08rDW2WWuW4+EBEy12Cfk2r1rF8KT+g3gcc2wLejSACkf7v+
+        ... jKo5SnvIwIMze+Msqjcz/+hbKRdEEoD2zihe6ilMfbR1tCt8GALQVa8YEoHpgkcL
+        ... MWbXSCgM7Q0gf00kHWa3A8rClW0dzW5kJG+InbymtenaDNwoNlFb6DHUdyF//REx
+        ... YjJ6qHf7qFwtXPBiwrZf+VYt5OnjeWW6ybYasfrJiXi1qnd6IM40QCGlR0UXhII=
+        ... =oUn0
+        ... -----END PGP SIGNATURE-----
+        ... """
+        >>> message_bad = """
+        ... -----BEGIN PGP SIGNED MESSAGE-----
+        ... Hash: SHA1
+        ...
+        ... Hello, another world!
+        ... -----BEGIN PGP SIGNATURE-----
+        ... Version: GnuPG v1
+        ...
+        ... iQEcBAEBAgAGBQJTWHSVAAoJEO7zMmcMHMCAYpEH/j2hJApaHXSj0ddgbrmUdJ2z
+        ... vZ5DFDR9syTPHrwtRJLPH7tgdiAtUpyXLozL321JIR7sExzONl7IKdpH1Qn0y1I/
+        ... h6mV0Dm+AAJXWtbn08rDW2WWuW4+EBEy12Cfk2r1rF8KT+g3gcc2wLejSACkf7v+
+        ... jKo5SnvIwIMze+Msqjcz/+hbKRdEEoD2zihe6ilMfbR1tCt8GALQVa8YEoHpgkcL
+        ... MWbXSCgM7Q0gf00kHWa3A8rClW0dzW5kJG+InbymtenaDNwoNlFb6DHUdyF//REx
+        ... YjJ6qHf7qFwtXPBiwrZf+VYt5OnjeWW6ybYasfrJiXi1qnd6IM40QCGlR0UXhII=
+        ... =oUn0
+        ... -----END PGP SIGNATURE-----
+        ... """
+        >>> kbase = Keybase('irc')
+        >>> pkey = kbase.get_public_key()
+        >>> verified = pkey.verify(message_good)
+        >>> assert verified
+        >>> verified = pkey.verify(message_bad)
+        >>> assert not verified
+        >>> pkey.verify(message_bad, throw_error=True)
+        Traceback (most recent call last):
+        ...
+        KeybasePublicKeyVerifyError: signature bad
+
+        If you want to verify the signature on a file (either embedded
+        or detached) please see :func:`keybase.KeybasePublicKey.verify_file`
+        method.
+        '''
+        vobj = self.__gpg.verify(data)
+        if vobj.valid:
+            return True
+        if throw_error:
+            raise KeybasePublicKeyVerifyError('{}'.format(vobj.status))
+        return False
+
+    def verify_file_embedded(self, data, throw_error=False):
+        '''
+        Verify the signature on a file named by ``data`` by looking in the
+        file for the signature information. This is known as an embedded
+        signature and it is usually produced by a command call like so:
+
+            gpg -u keybase.io/irc --sign helloworld.txt
+
+        The `data` argument should be a file object, not a file name.
+
+        Returns True if the signature was verified with the key, False
+        if it was not. If you supply ``throw_error=True`` to the call then
+        it will throw a KeybasePublicKeyVerifyError on verification failure
+        with a status message that tells you more about why verification
+        failed.
+
+        Failure status messages are:
+
+        * invalid gpg key
+        * signature bad
+        * signature error
+        * decryption failed
+        * no public key
+        * key exp
+        * key rev
+
+        For more information what these messages mean please see the
+        :py:class:`gnupg._parsers.Verify` manual page.
+
+        For an example of how to use `verify_file()` please see the
+        `test_regressions.py` file in the main package for this module.
+        '''
+        vobj = self.__gpg.verify_file(data)
+        if vobj.valid:
+            return True
+        if throw_error:
+            raise KeybasePublicKeyVerifyError('{}'.format(vobj.status))
+        return False
+
+    def verify_file_detached(self, datafname, sigfname, throw_error=False):
+        '''
+        Verify the signature on a file named by ``datafname`` by using the
+        detached signature file ``sigfname``. This is known as an detached
+        signature and it is usually produced by a command call like so:
+
+            gpg -u keybase.io/irc --detach-sign helloworld.txt
+
+        The `datafname` and `sigfname` argument should be the paths to
+        files on disk, not file objects.
+
+        Returns True if the signature was verified with the key, False
+        if it was not. If you supply ``throw_error=True`` to the call then
+        it will throw a KeybasePublicKeyVerifyError on verification failure
+        with a status message that tells you more about why verification
+        failed.
+
+        Failure status messages are:
+
+        * invalid gpg key
+        * signature bad
+        * signature error
+        * decryption failed
+        * no public key
+        * key exp
+        * key rev
+
+        For more information what these messages mean please see the
+        :py:class:`gnupg._parsers.Verify` manual page.
+
+        For an example of how to use `verify_file()` please see the
+        `test_regressions.py` file in the main package for this module.
+        '''
+        vobj = self.__gpg.verify_file(datafname, sigfname)
+        if vobj.valid:
+            return True
+        if throw_error:
+            raise KeybasePublicKeyVerifyError('{}'.format(vobj.status))
+        return False
 
 class KeybaseError(Exception):
     '''
@@ -406,4 +795,16 @@ class KeybaseLookupInvalidError(Exception):
     already been bound to a valid user via another lookup() call.
     '''
     pass
-    
+
+class KeybasePublicKeyError(Exception):
+    '''
+    Thrown when a KeybasePublicKey cannot be created successfully.
+    '''
+    pass
+
+class KeybasePublicKeyVerifyError(Exception):
+    '''
+    Thrown when a KeybasePublicKey cannot verify the signature on a
+    data object.
+    '''
+    pass

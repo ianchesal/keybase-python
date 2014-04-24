@@ -1,6 +1,6 @@
-=============
-Using Keybase
-=============
+===============
+The Keybase API
+===============
 
 Keybase Common Methods
 ----------------------
@@ -53,3 +53,10 @@ The Keybase Error Classes
 
 .. autoclass:: keybase.KeybaseLookupInvalidError
    :members:
+
+.. autoclass:: keybase.KeybasePublicKeyError
+   :members:
+
+.. autoclass:: keybase.KeybasePublicKeyVerifyError
+   :members:
+

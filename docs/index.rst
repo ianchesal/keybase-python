@@ -24,6 +24,7 @@ If you're not familiar with public/private key encryption check out `this tutori
    :maxdepth: 4
 
    installation
+   examples
    keybase
 
 

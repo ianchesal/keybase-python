@@ -152,8 +152,8 @@ class Keybase(object):
         tuple is returned if the instance isn't bound to a user or the user
         has no keys.
 
-        >>> k = Keybase('irc')
-        >>> k.public_keys
+        >>> kbase = Keybase('irc')
+        >>> kbase.public_keys
         (u'primary',)
         '''
         pkeys = list()
@@ -170,19 +170,19 @@ class Keybase(object):
         section exists in the user data object and the key exists in
         that section in the user data object:
 
-        >>> k = Keybase('irc')
-        >>> k._section_getter('profile', 'full_name')
+        >>> kbase = Keybase('irc')
+        >>> kbase._section_getter('profile', 'full_name')
         u'Ian Chesal'
 
         Otherwise it returns None if the section doesn't exist:
 
-        >>> if not k._section_getter('invalidsectionname', 'full_name'):
+        >>> if not kbase._section_getter('invalidsectionname', 'full_name'):
         ...    print 'Section not found!'
         Section not found!
 
         Or the key doesn't exist in the section:
 
-        >>> if not k._section_getter('profile', 'invalidkeyname'):
+        >>> if not kbase._section_getter('profile', 'invalidkeyname'):
         ...    print 'Key not found!'
         Key not found!
 
@@ -209,21 +209,21 @@ class Keybase(object):
         ``primary`` if you opt not to supply a keyname when you call the
         method.
 
-        >>> k = Keybase('irc')
-        >>> primary_key = k.get_public_key()
+        >>> kbase = Keybase('irc')
+        >>> primary_key = kbase.get_public_key()
         >>> primary_key.kid
         u'0101f56ecf27564e5bec1c50250d09efe963cad3138d4dc7f4646c77f6008c1e23cf0a'
 
         Otherwise it returns None if a key by the name of keyname doesn't
         exist for this user.
 
-        >>> k.get_public_key('thiskeydoesnotexist')
+        >>> kbase.get_public_key('thiskeydoesnotexist')
 
         If the instance hasn't been bound to a username yet it throws a
         :mod:`keybase.KeybaseUnboundInstanceError`.
 
-        >>> k = Keybase()
-        >>> k.get_public_key()
+        >>> kbase = Keybase()
+        >>> kbase.get_public_key()
         Traceback (most recent call last):
         ...
         KeybaseUnboundInstanceError: Unable to fetch public key
@@ -241,17 +241,17 @@ class Keybase(object):
         this Keybase class instance with the user's public keybase.io
         details.
 
-        >>> k = Keybase()
-        >>> k.username
-        >>> k.lookup('irc')
-        >>> k.username
+        >>> kbase = Keybase()
+        >>> kbase.username
+        >>> kbase.lookup('irc')
+        >>> kbase.username
         'irc'
 
         The lookup() method can be called until the first successful user
         is found in keybase.io. After that, subsequent lookup calls will
         raise a :mod:`keybase.KeybaseLookupInvalidError` exception:
 
-        >>> k.lookup('ab')
+        >>> kbase.lookup('ab')
         Traceback (most recent call last):
         ...
         KeybaseLookupInvalidError: Keybase object already bound to username 'irc'
@@ -263,8 +263,8 @@ class Keybase(object):
         If the user cannot be found a :mod:`keybase.KeybaseUserNotFound`
         exception is raised:
 
-        >>> k2 = Keybase()
-        >>> k2.lookup('abcdefghijklmno123')
+        >>> kbase2 = Keybase()
+        >>> kbase2.lookup('abcdefghijklmno123')
         Traceback (most recent call last):
         ...
         KeybaseUserNotFound: ('User abcdefghijklmno123 not found', {'url': u'https://keybase.io/_/api/1.0/user/lookup.json?username=abcdefghijklmno123'})
@@ -307,6 +307,77 @@ class Keybase(object):
         self._user_object = jresponse['them']
         self._username = username
         self.__lookup_performed = True
+
+    def verify(self, data, throw_error=False):
+        '''
+        Equivalent to:::
+
+            kbase = Keybase('irc')
+            pkey = kbase.get_public_key()
+            verified = pkey.verify(some_message)
+            assert verified
+
+        It's a convenience method on the Keybase object to do data
+        verification with the primary key.
+
+        For more information see :mod:`keybase.KeybasePublicKey`.
+
+        If the instance hasn't been bound to a username yet it throws a
+        :mod:`keybase.KeybaseUnboundInstanceError`.
+        '''
+        self._raise_unbound_error('Unable to fetch public key')
+        pkey = self.get_public_key()
+        return pkey.verify(
+            data,
+            throw_error=throw_error)
+
+    def verify_file_embedded(self, data, throw_error=False):
+        '''
+        Equivalent to:::
+
+            kbase = Keybase('irc')
+            pkey = kbase.get_public_key()
+            with open('somefile.txt.gpg', 'rb') as fdata:
+                verified = pkey.verify_file_embedded(fdata)
+                assert verified
+
+        It's a convenience method on the Keybase object to do data
+        verification with the primary key.
+
+        For more information see :mod:`keybase.KeybasePublicKey`.
+
+        If the instance hasn't been bound to a username yet it throws a
+        :mod:`keybase.KeybaseUnboundInstanceError`.
+        '''
+        self._raise_unbound_error('Unable to fetch public key')
+        pkey = self.get_public_key()
+        return pkey.verify_file_embedded(
+            data,
+            throw_error=throw_error)
+
+    def verify_file_detached(self, datafname, sigfname, throw_error=False):
+        '''
+        Equivalent to:::
+
+            kbase = Keybase('irc')
+            pkey = kbase.get_public_key()
+            verified = pkey.verify_file_detached(fname, signame)
+            assert verified
+
+        It's a convenience method on the Keybase object to do data
+        verification with the primary key.
+
+        For more information see :mod:`keybase.KeybasePublicKey`.
+
+        If the instance hasn't been bound to a username yet it throws a
+        :mod:`keybase.KeybaseUnboundInstanceError`.
+        '''
+        self._raise_unbound_error('Unable to fetch public key')
+        pkey = self.get_public_key()
+        return pkey.verify_file_detached(
+            datafname,
+            sigfname,
+            throw_error=throw_error)
 
     @staticmethod
     def _build_url(endpoint):
@@ -374,11 +445,11 @@ class KeybaseAdmin(Keybase):
 
         If the object has no username property an KeybaseError is thrown.
 
-        >>> k = KeybaseAdmin(username='irc')
-        >>> print k.salt
+        >>> kbase = KeybaseAdmin(username='irc')
+        >>> print kbase.salt
         None
-        >>> login_session = k._get_salt()
-        >>> print k.salt
+        >>> login_session = kbase._get_salt()
+        >>> print kbase.salt
         5838c199c1b825a069185d5707302693
         '''
         self._raise_unbound_error('Unable to retrieve salt from keybase.io')
@@ -428,8 +499,8 @@ class KeybasePublicKey(object):
     You won't be able to decrypt with this class because it only contains a public
     key, not a private key. But you can encrypt and and sign:
 
-    >>> k = Keybase('irc')
-    >>> pkey = k.get_public_key()
+    >>> kbase = Keybase('irc')
+    >>> pkey = kbase.get_public_key()
     >>> pkey.key_fingerprint
     u'7cc0ce678c37fc27da3ce494f56b7a6f0a32a0b9'
 
@@ -540,6 +611,163 @@ class KeybasePublicKey(object):
             value = self.__data[prop]
         return value
 
+    def verify(self, data, throw_error=False):
+        '''
+        Verify the signature on the contents of the string ``data``.
+        Returns True if the signature was verified with the key, False
+        if it was not. If you supply ``throw_error=True`` to the call then
+        it will throw a KeybasePublicKeyVerifyError on verification failure
+        with a status message that tells you more about why verification
+        failed.
+
+        Failure status messages are:
+
+        * invalid gpg key
+        * signature bad
+        * signature error
+        * decryption failed
+        * no public key
+        * key exp
+        * key rev
+
+        For more information what these messages mean please see the
+        :py:class:`gnupg._parsers.Verify` manual page.
+
+        >>> message_good = """
+        ... -----BEGIN PGP SIGNED MESSAGE-----
+        ... Hash: SHA1
+        ...
+        ... Hello, world!
+        ... -----BEGIN PGP SIGNATURE-----
+        ... Version: GnuPG v1
+        ...
+        ... iQEcBAEBAgAGBQJTWHSVAAoJEO7zMmcMHMCAYpEH/j2hJApaHXSj0ddgbrmUdJ2z
+        ... vZ5DFDR9syTPHrwtRJLPH7tgdiAtUpyXLozL321JIR7sExzONl7IKdpH1Qn0y1I/
+        ... h6mV0Dm+AAJXWtbn08rDW2WWuW4+EBEy12Cfk2r1rF8KT+g3gcc2wLejSACkf7v+
+        ... jKo5SnvIwIMze+Msqjcz/+hbKRdEEoD2zihe6ilMfbR1tCt8GALQVa8YEoHpgkcL
+        ... MWbXSCgM7Q0gf00kHWa3A8rClW0dzW5kJG+InbymtenaDNwoNlFb6DHUdyF//REx
+        ... YjJ6qHf7qFwtXPBiwrZf+VYt5OnjeWW6ybYasfrJiXi1qnd6IM40QCGlR0UXhII=
+        ... =oUn0
+        ... -----END PGP SIGNATURE-----
+        ... """
+        >>> message_bad = """
+        ... -----BEGIN PGP SIGNED MESSAGE-----
+        ... Hash: SHA1
+        ...
+        ... Hello, another world!
+        ... -----BEGIN PGP SIGNATURE-----
+        ... Version: GnuPG v1
+        ...
+        ... iQEcBAEBAgAGBQJTWHSVAAoJEO7zMmcMHMCAYpEH/j2hJApaHXSj0ddgbrmUdJ2z
+        ... vZ5DFDR9syTPHrwtRJLPH7tgdiAtUpyXLozL321JIR7sExzONl7IKdpH1Qn0y1I/
+        ... h6mV0Dm+AAJXWtbn08rDW2WWuW4+EBEy12Cfk2r1rF8KT+g3gcc2wLejSACkf7v+
+        ... jKo5SnvIwIMze+Msqjcz/+hbKRdEEoD2zihe6ilMfbR1tCt8GALQVa8YEoHpgkcL
+        ... MWbXSCgM7Q0gf00kHWa3A8rClW0dzW5kJG+InbymtenaDNwoNlFb6DHUdyF//REx
+        ... YjJ6qHf7qFwtXPBiwrZf+VYt5OnjeWW6ybYasfrJiXi1qnd6IM40QCGlR0UXhII=
+        ... =oUn0
+        ... -----END PGP SIGNATURE-----
+        ... """
+        >>> kbase = Keybase('irc')
+        >>> pkey = kbase.get_public_key()
+        >>> verified = pkey.verify(message_good)
+        >>> assert verified
+        >>> verified = pkey.verify(message_bad)
+        >>> assert not verified
+        >>> pkey.verify(message_bad, throw_error=True)
+        Traceback (most recent call last):
+        ...
+        KeybasePublicKeyVerifyError: signature bad
+
+        If you want to verify the signature on a file (either embedded
+        or detached) please see :func:`keybase.KeybasePublicKey.verify_file`
+        method.
+        '''
+        vobj = self.__gpg.verify(data)
+        if vobj.valid:
+            return True
+        if throw_error:
+            raise KeybasePublicKeyVerifyError('{}'.format(vobj.status))
+        return False
+
+    def verify_file_embedded(self, data, throw_error=False):
+        '''
+        Verify the signature on a file named by ``data`` by looking in the
+        file for the signature information. This is known as an embedded
+        signature and it is usually produced by a command call like so:
+
+            gpg -u keybase.io/irc --sign helloworld.txt
+
+        The `data` argument should be a file object, not a file name.
+
+        Returns True if the signature was verified with the key, False
+        if it was not. If you supply ``throw_error=True`` to the call then
+        it will throw a KeybasePublicKeyVerifyError on verification failure
+        with a status message that tells you more about why verification
+        failed.
+
+        Failure status messages are:
+
+        * invalid gpg key
+        * signature bad
+        * signature error
+        * decryption failed
+        * no public key
+        * key exp
+        * key rev
+
+        For more information what these messages mean please see the
+        :py:class:`gnupg._parsers.Verify` manual page.
+
+        For an example of how to use `verify_file()` please see the
+        `test_regressions.py` file in the main package for this module.
+        '''
+        vobj = self.__gpg.verify_file(data)
+        if vobj.valid:
+            return True
+        if throw_error:
+            raise KeybasePublicKeyVerifyError('{}'.format(vobj.status))
+        return False
+
+    def verify_file_detached(self, datafname, sigfname, throw_error=False):
+        '''
+        Verify the signature on a file named by ``datafname`` by using the
+        detached signature file ``sigfname``. This is known as an detached
+        signature and it is usually produced by a command call like so:
+
+            gpg -u keybase.io/irc --detach-sign helloworld.txt
+
+        The `datafname` and `sigfname` argument should be the paths to
+        files on disk, not file objects.
+
+        Returns True if the signature was verified with the key, False
+        if it was not. If you supply ``throw_error=True`` to the call then
+        it will throw a KeybasePublicKeyVerifyError on verification failure
+        with a status message that tells you more about why verification
+        failed.
+
+        Failure status messages are:
+
+        * invalid gpg key
+        * signature bad
+        * signature error
+        * decryption failed
+        * no public key
+        * key exp
+        * key rev
+
+        For more information what these messages mean please see the
+        :py:class:`gnupg._parsers.Verify` manual page.
+
+        For an example of how to use `verify_file()` please see the
+        `test_regressions.py` file in the main package for this module.
+        '''
+        vobj = self.__gpg.verify_file(datafname, sigfname)
+        if vobj.valid:
+            return True
+        if throw_error:
+            raise KeybasePublicKeyVerifyError('{}'.format(vobj.status))
+        return False
+
 class KeybaseError(Exception):
     '''
     General error class for Keybase errors.
@@ -574,3 +802,9 @@ class KeybasePublicKeyError(Exception):
     '''
     pass
 
+class KeybasePublicKeyVerifyError(Exception):
+    '''
+    Thrown when a KeybasePublicKey cannot verify the signature on a
+    data object.
+    '''
+    pass

@@ -1,5 +1,7 @@
 # keybase-python
 
+[![Build Status](https://travis-ci.org/ianchesal/keybase-python.svg?branch=develop)](https://travis-ci.org/ianchesal/keybase-python)
+
 A Python implementation of the keybase.io API
 
 ## What is Keybase?

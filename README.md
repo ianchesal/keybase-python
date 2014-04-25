@@ -21,9 +21,7 @@ The official documentation for the project can be found here: http://keybase-pyt
 
 ### Installation
 
-    pip install keybase
-
-NB: I haven't pushed this to PyPI yet so the above doesn't work just quite yet. Soon.
+    pip install keybase-api
 
 ## Examples
 

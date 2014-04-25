@@ -24,8 +24,18 @@ def read(*filenames, **kwargs):
             buf.append(f.read())
     return sep.join(buf)
 
-#long_description = read('README.txt', 'CHANGES.txt')
-long_description = 'Test'
+long_description = '''The ``keybase`` python API allows you to search, download
+and use the stored keys in the Keybase directory. You can do things like encrypt
+messages and files for a user or verify a signature on a file from a user.
+Eventually it will be extended to allow you to administer Keybase user
+identities and their associated public/private keypairs via the ``KeybaseAdmin`` class.
+
+Documentation
+-------------
+
+The official documentation for the project can be found here: http://keybase-python-api.readthedocs.org/en/latest/
+
+'''
 
 class PyTest(TestCommand):
     def finalize_options(self):
@@ -50,7 +60,7 @@ class Tox(TestCommand):
         sys.exit(errcode)
 
 setup(
-    name = 'keybase',
+    name = 'keybase-api',
     version = keybase.__version__,
     url = 'https://github.com/ianchesal/keybase-python',
     license = 'Apache Software License, v2.0',

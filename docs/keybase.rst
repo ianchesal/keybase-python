@@ -60,3 +60,6 @@ The Keybase Error Classes
 .. autoclass:: keybase.KeybasePublicKeyVerifyError
    :members:
 
+.. autoclass:: keybase.KeybasePublicKeyEncryptError
+   :members:
+

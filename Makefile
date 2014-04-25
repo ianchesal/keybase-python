@@ -6,6 +6,9 @@
 clean:
 	rm -rf .tox
 	rm -rf test/__pycache__
+	rm -rf docs/generated
+	rm -rf docs/_build
+	rm -rf keybase.egg-info
 
 test: clean
 		tox

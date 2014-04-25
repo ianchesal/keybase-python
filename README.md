@@ -1,5 +1,7 @@
 # keybase-python
 
+[![Build Status](https://travis-ci.org/ianchesal/keybase-python.svg?branch=develop)](https://travis-ci.org/ianchesal/keybase-python)
+
 A Python implementation of the keybase.io API
 
 ## What is Keybase?
@@ -65,7 +67,38 @@ In this case:
     verified = kbase.verify_file(fname, sigfname)
     assert verified
 
+### Use a User's Public Key to Encrypt a Message to that User
+
+Given some `str` formatted data, you can create an ASCII armored, encrypted `str` representation of that data suitable for sending to the user. Only someone with the private key will be able to decrypt this data.
+
+    kbase = Keybase('irc')
+    instring = 'Hello, world!'
+    encrypted = kbase.encrypt(instring)
+    assert encrypted
+    assert not encrypted.isspace()
+    assert encrypted != instring
+
 ## Development
+
+### GnuPG
+
+Most of the testing was done against GnuPG:
+
+    > gpg2 --version
+    gpg (GnuPG) 2.0.22
+    libgcrypt 1.6.1
+    Copyright (C) 2013 Free Software Foundation, Inc.
+    License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+    This is free software: you are free to change and redistribute it.
+    There is NO WARRANTY, to the extent permitted by law.
+
+    Home: ~/.gnupg
+    Supported algorithms:
+    Pubkey: RSA, ELG, DSA, ECC, ?
+    Cipher: IDEA, 3DES, CAST5, BLOWFISH, AES, AES192, AES256, TWOFISH,
+            CAMELLIA128, CAMELLIA192, CAMELLIA256
+    Hash: MD5, SHA1, RIPEMD160, SHA256, SHA384, SHA512, SHA224
+    Compression: Uncompressed, ZIP, ZLIB, BZIP2
 
 ### Continuous Integration
 

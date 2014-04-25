@@ -150,21 +150,21 @@ def test_verify_file_embedded_signature():
     '''
     k = keybase.Keybase('irc')
     pkey = k.get_public_key()
-    with open(os.path.join(os.getcwd(), 'test', 'golden', 'helloworld.txt.gpg'), 'rb') as fdata:
-        verified = pkey.verify_file_embedded(
-            fdata,
-            throw_error=True)
-        assert verified
-        # Compare this to a straight-up GnuPGP verification using the
-        # known public key from the pair that signed the file.
-        tempdir = tempfile.mkdtemp(suffix='.keybase-test')
-        gpg = gnupg.GPG(homedir=tempdir, verbose=False, use_agent=False, binary=keybase.gpg())
-        gpg.import_keys(GPG_KEY_DATA)
-        fdata.seek(0)
+    fname = os.path.join(os.getcwd(), 'test', 'golden', 'helloworld.txt.gpg')
+    verified = pkey.verify_file(
+        fname,
+        throw_error=True)
+    assert verified
+    # Compare this to a straight-up GnuPGP verification using the
+    # known public key from the pair that signed the file.
+    tempdir = tempfile.mkdtemp(suffix='.keybase-test')
+    gpg = gnupg.GPG(homedir=tempdir, verbose=False, use_agent=False, binary=keybase.gpg())
+    gpg.import_keys(GPG_KEY_DATA)
+    with open(fname, 'rb') as fdata:
         vobj = gpg.verify_file(fdata)
         assert vobj.valid
-        del gpg
-        shutil.rmtree(tempdir)
+    del gpg
+    shutil.rmtree(tempdir)
 
 def test_verify_file_detached_signature():
     '''
@@ -178,10 +178,10 @@ def test_verify_file_detached_signature():
     '''
     k = keybase.Keybase('irc')
     pkey = k.get_public_key()
-    fdata = os.path.join(os.getcwd(), 'test', 'golden', 'helloworld.txt')
+    fname = os.path.join(os.getcwd(), 'test', 'golden', 'helloworld.txt')
     fsig = os.path.join(os.getcwd(), 'test', 'golden', 'helloworld.txt.sig')
-    verified = pkey.verify_file_detached(
-        fdata,
+    verified = pkey.verify_file(
+        fname,
         fsig)
     assert verified
     # Compare this to a straight-up GnuPGP verification using the
@@ -189,7 +189,7 @@ def test_verify_file_detached_signature():
     tempdir = tempfile.mkdtemp(suffix='.keybase-test')
     gpg = gnupg.GPG(homedir=tempdir, verbose=False, use_agent=False, binary=keybase.gpg())
     gpg.import_keys(GPG_KEY_DATA)
-    vobj = gpg.verify_file(fdata, fsig)
+    vobj = gpg.verify_file(fname, fsig)
     assert vobj.valid
     del gpg
     shutil.rmtree(tempdir)

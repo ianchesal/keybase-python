@@ -320,7 +320,7 @@ class Keybase(object):
         It's a convenience method on the Keybase object to do data
         verification with the primary key.
 
-        For more information see :mod:`keybase.KeybasePublicKey`.
+        For more information see :mod:`keybase.KeybasePublicKey.verify`.
 
         If the instance hasn't been bound to a username yet it throws a
         :mod:`keybase.KeybaseUnboundInstanceError`.
@@ -331,52 +331,28 @@ class Keybase(object):
             data,
             throw_error=throw_error)
 
-    def verify_file_embedded(self, data, throw_error=False):
+    def verify_file(self, fname, sigfname=None, throw_error=False):
         '''
         Equivalent to:::
 
             kbase = Keybase('irc')
             pkey = kbase.get_public_key()
-            with open('somefile.txt.gpg', 'rb') as fdata:
-                verified = pkey.verify_file_embedded(fdata)
-                assert verified
-
-        It's a convenience method on the Keybase object to do data
-        verification with the primary key.
-
-        For more information see :mod:`keybase.KeybasePublicKey`.
-
-        If the instance hasn't been bound to a username yet it throws a
-        :mod:`keybase.KeybaseUnboundInstanceError`.
-        '''
-        self._raise_unbound_error('Unable to fetch public key')
-        pkey = self.get_public_key()
-        return pkey.verify_file_embedded(
-            data,
-            throw_error=throw_error)
-
-    def verify_file_detached(self, datafname, sigfname, throw_error=False):
-        '''
-        Equivalent to:::
-
-            kbase = Keybase('irc')
-            pkey = kbase.get_public_key()
-            verified = pkey.verify_file_detached(fname, signame)
+            verified = pkey.verify_file(fname, signame)
             assert verified
 
         It's a convenience method on the Keybase object to do data
         verification with the primary key.
 
-        For more information see :mod:`keybase.KeybasePublicKey`.
+        For more information see :mod:`keybase.KeybasePublicKey.verify_file`.
 
         If the instance hasn't been bound to a username yet it throws a
         :mod:`keybase.KeybaseUnboundInstanceError`.
         '''
         self._raise_unbound_error('Unable to fetch public key')
         pkey = self.get_public_key()
-        return pkey.verify_file_detached(
-            datafname,
-            sigfname,
+        return pkey.verify_file(
+            fname=fname,
+            sigfname=sigfname,
             throw_error=throw_error)
 
     @staticmethod
@@ -689,61 +665,27 @@ class KeybasePublicKey(object):
             raise KeybasePublicKeyVerifyError('{}'.format(vobj.status))
         return False
 
-    def verify_file_embedded(self, data, throw_error=False):
+    def verify_file(self, fname, sigfname=None, throw_error=False):
         '''
-        Verify the signature on a file named by ``data`` by looking in the
-        file for the signature information. This is known as an embedded
-        signature and it is usually produced by a command call like so:
+        Verify the signature on a file named ``fname``. This is a string file
+        name, not a file object. If only a ``fname`` is provided the method
+        assumes the signature is embedded in the file itself. An embedded
+        signature is usually produced like so::
 
             gpg -u keybase.io/irc --sign helloworld.txt
 
-        The `data` argument should be a file object, not a file name.
-
-        Returns True if the signature was verified with the key, False
-        if it was not. If you supply ``throw_error=True`` to the call then
-        it will throw a KeybasePublicKeyVerifyError on verification failure
-        with a status message that tells you more about why verification
-        failed.
-
-        Failure status messages are:
-
-        * invalid gpg key
-        * signature bad
-        * signature error
-        * decryption failed
-        * no public key
-        * key exp
-        * key rev
-
-        For more information what these messages mean please see the
-        :py:class:`gnupg._parsers.Verify` manual page.
-
-        For an example of how to use `verify_file()` please see the
-        `test_regressions.py` file in the main package for this module.
-        '''
-        vobj = self.__gpg.verify_file(data)
-        if vobj.valid:
-            return True
-        if throw_error:
-            raise KeybasePublicKeyVerifyError('{}'.format(vobj.status))
-        return False
-
-    def verify_file_detached(self, datafname, sigfname, throw_error=False):
-        '''
-        Verify the signature on a file named by ``datafname`` by using the
-        detached signature file ``sigfname``. This is known as an detached
-        signature and it is usually produced by a command call like so:
+        If a ``sigfname`` argument is prodived it's assumed to be a path to
+        signature file for a detached signature. A detached signature is
+        usually produced like so:::
 
             gpg -u keybase.io/irc --detach-sign helloworld.txt
 
-        The `datafname` and `sigfname` argument should be the paths to
-        files on disk, not file objects.
+        Returns True if the signature is verifiable with the key, False if it
+        is not verifiable.
 
-        Returns True if the signature was verified with the key, False
-        if it was not. If you supply ``throw_error=True`` to the call then
-        it will throw a KeybasePublicKeyVerifyError on verification failure
-        with a status message that tells you more about why verification
-        failed.
+        If you supply the ``throw_error=True`` option to the call then it will
+        throw a KeybasePublicKeyVerifyError on verification failure with a
+        status message that tells you more about why the verification failed.
 
         Failure status messages are:
 
@@ -757,11 +699,17 @@ class KeybasePublicKey(object):
 
         For more information what these messages mean please see the
         :py:class:`gnupg._parsers.Verify` manual page.
-
-        For an example of how to use `verify_file()` please see the
-        `test_regressions.py` file in the main package for this module.
         '''
-        vobj = self.__gpg.verify_file(datafname, sigfname)
+        vobj = None
+        if not sigfname:
+            # The embedded signature version of the GPG call expects
+            # a file object, not a file name, for some reason so...
+            with open(fname, 'rb') as fobj:
+                vobj = self.__gpg.verify_file(fobj)
+        else:
+            # The detached signature version of the GPG call expects
+            # file names so...
+            vobj = self.__gpg.verify_file(fname, sigfname)
         if vobj.valid:
             return True
         if throw_error:

@@ -97,9 +97,8 @@ Where the file was signed with a ``gpg`` command like so:::
 So there is one, binary, file ``helloworld.txt.gpg`` that contains both the data and the signature on the data to verify.::
 
     kbase = Keybase('irc')
-    with open('helloworld.txt.gpg', 'rb') as fdata:
-    	verified = kbase.verify_file_embedded(fdata)
-    	assert verified
+    verified = kbase.verify_file('helloworld.txt.gpg')
+    assert verified
 
 Verify an Detached Signature on a File
 --------------------------------------
@@ -118,5 +117,5 @@ In this case:::
     kbase = Keybase('irc')
     fname = 'helloworld.txt'
     signame = 'helloworld.txt.sig'
-    verified = kbase.verify_file_embedded(fname, signame)
+    verified = kbase.verify_file(fname, signame)
     assert verified

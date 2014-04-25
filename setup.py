@@ -105,7 +105,8 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         'Topic :: Software Development :: Libraries :: Python Modules',
-        'Topic :: Software Development :: Libraries :: Application Frameworks',
+        'Topic :: Security',
+        'Topic :: Security :: Cryptography',
         ],
     extras_require = {
         'testing': ['pytest'],

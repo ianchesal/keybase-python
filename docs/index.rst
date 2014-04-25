@@ -6,8 +6,6 @@
 Welcome to keybase's documentation!
 ===================================
 
-.. image:: https://travis-ci.org/ianchesal/keybase-python.svg?branch=develop   :target: https://travis-ci.org/ianchesal/keybase-python
-
 What is Keybase? From `their website <https://keybase.io/>`_:
 
 .. note::

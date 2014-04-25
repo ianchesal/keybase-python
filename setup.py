@@ -99,8 +99,6 @@ setup(
     classifiers = [
         'Programming Language :: Python',
         'Development Status :: 4 - Beta',
-        'Natural Language :: English',
-        'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',

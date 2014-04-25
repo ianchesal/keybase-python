@@ -620,8 +620,8 @@ class KeybasePublicKey(object):
 
         >>> kbase = Keybase('irc')
         >>> pkey = kbase.get_public_key()
-        >>> pkey.cipher_algos
-        ('IDEA', '3DES', 'CAST5', 'BLOWFISH', 'AES', 'AES192', 'AES256', 'TWOFISH', 'CAMELLIA128', 'CAMELLIA192', 'CAMELLIA256')
+        >>> 'AES256' in pkey.cipher_algos
+        True
         '''
         return tuple(self.__cipher_algos)
 
@@ -635,8 +635,8 @@ class KeybasePublicKey(object):
 
         >>> kbase = Keybase('irc')
         >>> pkey = kbase.get_public_key()
-        >>> pkey.digest_algos
-        ('MD5', 'SHA1', 'RIPEMD160', 'SHA256', 'SHA384', 'SHA512', 'SHA224')
+        >>> 'SHA512' in pkey.digest_algos
+        True
         '''
         return tuple(self.__digest_algos)
 
@@ -646,12 +646,12 @@ class KeybasePublicKey(object):
         Returns a tuple of available compression algorithms that you can use
         with this key to compress encrypted data. The available algorithms
         depend entirely on the GPG version installed on the machine though
-        most, if not all GPG versions, support ``ZLIB``.
+        most, if not all GPG versions, support ``ZIP``.
 
         >>> kbase = Keybase('irc')
         >>> pkey = kbase.get_public_key()
-        >>> pkey.compress_algos
-        ('ZLIB', 'BZIP2', 'ZIP', 'Uncompressed')
+        >>> 'ZIP' in pkey.compress_algos
+        True
         '''
         return tuple(self.__compress_algos)
 

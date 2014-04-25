@@ -23,7 +23,7 @@ import sphinx_rtd_theme
 # Knupp who in turn borrowed it from the Flask project.
 import pkg_resources
 try:
-    release = pkg_resources.get_distribution('keybase').version
+    release = pkg_resources.get_distribution('keybase-api').version
 except pkg_resources.DistributionNotFound:
     print 'To build the documentation, The distribution information of keybase'
     print 'Has to be available.  Either install the package into your'

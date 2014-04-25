@@ -5,7 +5,7 @@ Examples
 Get a User's Credentials
 ------------------------
 
-You can retrieve a specific user's credentials from the Keybase data store like so:::
+You can retrieve a specific user's credentials from the Keybase data store like so::
 
 	kbase = Keybase('irc')
 	primary_key = kbase.get_public_key()
@@ -17,11 +17,11 @@ You can use the ``ascii`` or ``bundle`` properties on the ``primary_key`` object
 Verifying a Signature on String Data
 ------------------------------------
 
-Where the strings are clear-signed text strings that are produced using a ``gpg`` command like so:::
+Where the strings are clear-signed text strings that are produced using a ``gpg`` command like so::
 
 	gpg --clearsign helloworld.txt --local-user keybase.io/irc
 
-These clear-signed text snippets are common in signed email. Where the body of the email is surrounded by the signature like so:::
+These clear-signed text snippets are common in signed email. Where the body of the email is surrounded by the signature like so::
 
 	-----BEGIN PGP SIGNED MESSAGE-----
 	Hash: SHA1
@@ -39,7 +39,7 @@ These clear-signed text snippets are common in signed email. Where the body of t
 	=oUn0
 	-----END PGP SIGNATURE-----
 
-These types of clear-signed strings can be verified like so:::
+These types of clear-signed strings can be verified like so::
 
 	message_good = """
 	-----BEGIN PGP SIGNED MESSAGE-----
@@ -90,11 +90,11 @@ In the ``message_bad`` case you can see that either the message was tampered wit
 Verifying an Embedded Signature on a File
 -----------------------------------------
 
-Where the file was signed with a ``gpg`` command like so:::
+Where the file was signed with a ``gpg`` command like so::
 
     gpg -u keybase.io/irc --sign helloworld.txt
 
-So there is one, binary, file ``helloworld.txt.gpg`` that contains both the data and the signature on the data to verify.::
+So there is one, binary, file ``helloworld.txt.gpg`` that contains both the data and the signature on the data to verify::
 
     kbase = Keybase('irc')
     verified = kbase.verify_file('helloworld.txt.gpg')
@@ -103,7 +103,7 @@ So there is one, binary, file ``helloworld.txt.gpg`` that contains both the data
 Verify an Detached Signature on a File
 --------------------------------------
 
-Where the file was signed with a ``gpg`` command like so:::
+Where the file was signed with a ``gpg`` command like so::
 
 	gpg -u keybase.io/irc --detach-sign helloworld.txt
 
@@ -112,10 +112,43 @@ So there are two files:
 #. The original data file; and
 #. The detached ``.sig`` file that contains the signature for the data.
 
-In this case:::
+In this case::
 
     kbase = Keybase('irc')
     fname = 'helloworld.txt'
     signame = 'helloworld.txt.sig'
     verified = kbase.verify_file(fname, signame)
     assert verified
+
+Encrypting a Message for a Keybase User
+---------------------------------------
+
+Given some ``str`` formatted data, you can create an ASCII armored, encrypted ``str`` representation of that data suitable for sending to the user. Only someone with the private key, presumably this Keybase user, will be able to decrypt this data::
+
+    kbase = Keybase('irc')
+    instring = 'Hello, world!'
+    encrypted = kbase.encrypt(instring)
+    assert encrypted
+    assert not encrypted.isspace()
+    assert encrypted != instring
+
+This ASCII armored approach to encrypting is useful for embedding secret messages in to standard, plaintext communications like emails, tweets or text messages.
+
+Encrypting a File for a Keybase User
+------------------------------------
+
+You can create a binary, encrypted file for a user using their Keybase key. Only the user, with their private key, will be able to decrypt the data. The input file contents does not have to be ASCII in this case::
+
+	kbase = Keybase('irc')
+	with open('inputfile.bin', 'rb') as infile:
+		with open('inputfile.bin.gpg', 'wb') as outfile:
+			data = infile.read()
+			encrypted_data = kbase.encrypt(data, armor=False)
+			outfile.write(encrypted_data.data)
+	assert os.path.isfile('inputfile.bin.gpg')
+
+The user can now decrypt ``inputfile.bin.gpg`` with::
+
+	gpg --decrypt inputfile.bin.gpg
+
+They will be prompted for the private key's password.

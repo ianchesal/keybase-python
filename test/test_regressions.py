@@ -194,7 +194,41 @@ def test_verify_file_detached_signature():
     del gpg
     shutil.rmtree(tempdir)
 
+def test_encrypt_string_data():
+    k = keybase.Keybase('irc')
+    pkey = k.get_public_key()
+    instring = 'Hello, world!'
+    encrypted = pkey.encrypt(instring)
+    assert encrypted
+    assert not encrypted.isspace()
+    assert encrypted != instring
+    encrypted2 = k.encrypt(instring)
+    assert encrypted2
+    assert not encrypted2.isspace()
+    assert encrypted2 != instring
+
+def test_gpg_encrypt():
+    '''
+    This is a test of the basic gnupg module functionality. I was using this
+    to sort out how the encrypt() function actually worked. Keeping it in
+    here as a test of this module because if it fails, it likely means all the
+    assumptions the keybase API code is based on are now wrong.
+    '''
+    tempdir = tempfile.mkdtemp(suffix='.keybase-test')
+    gpg = gnupg.GPG(homedir=tempdir, verbose=False, use_agent=False, binary=keybase.gpg())
+    gpg.import_keys(GPG_KEY_DATA)
+    instring = 'Hello, world!'
+    encrypted = str(gpg.encrypt(instring, gpg.list_keys()[0]['keyid'], compress_algo='ZIP'))
+    assert encrypted
+    assert not encrypted.isspace()
+    assert encrypted != instring
+    del gpg
+    shutil.rmtree(tempdir)
+
+# You can use this stuff for debugging interactively:
 #import logging
 #logging.basicConfig(level=logging.DEBUG)
+#test_encrypt_string_data()
+#test_gpg_encrypt()
 #test_verify_file_embedded_signature()
 #test_verify_file_detached_signature()

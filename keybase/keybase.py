@@ -16,28 +16,36 @@ import os
 import gnupg
 import tempfile
 import shutil
+import subprocess
+import unicodedata
 
-def gpg(binary='gpg'):
+def gpg(binary=None):
     '''
-    Returns the full path to the gpg instance on this machine.
+    Returns the full path to the gpg instance on this machine. It prefers
+    ``gpg2`` but will search for ``gpg`` if it cannot find ``gpg2``.
 
     I implemented this because the :mod:`gnupg.GPG` class was having a
     hard time dealing with the fact that my Homebrew-installed GPG instance
     was a symlink in the ``/usr/local/bin`` directory instead of a real
     path to a real file.
 
-    If your GnuPG binary isn't named ``gpg`` you can override the default
-    with the ``binary=<something>`` option to the call to give it another
-    name for the executable.
+    If you want to use a binary with a specific name, supply the
+    ``binary=bName`` option when you call ``gpg()`` and it will use your
+    custom binary name instead.
 
     On windows you shouldn't need to supply an extension to the command
     like ``.exe`` or ``.cmd`` -- it will figure it out for you.
 
-    Returns ``None`` if it cannot find a gpg instance in your PATH.
+    Returns ``None`` if it cannot find a gpg2 or gpg instance in your PATH.
     '''
-    mygpg = _which(binary)
-    if len(mygpg) > 0:
-        return os.path.realpath(mygpg[0])
+    if binary:
+        search_list = list(binary)
+    else:
+        search_list = ('gpg2', 'gpg')
+    for _gpg in search_list:
+        mygpg = _which(_gpg)
+        if len(mygpg) > 0:
+            return os.path.realpath(mygpg[0])
     return None
 
 def _which(executable, flags=os.X_OK):
@@ -310,7 +318,7 @@ class Keybase(object):
 
     def verify(self, data, throw_error=False):
         '''
-        Equivalent to:::
+        Equivalent to::
 
             kbase = Keybase('irc')
             pkey = kbase.get_public_key()
@@ -333,7 +341,7 @@ class Keybase(object):
 
     def verify_file(self, fname, sigfname=None, throw_error=False):
         '''
-        Equivalent to:::
+        Equivalent to::
 
             kbase = Keybase('irc')
             pkey = kbase.get_public_key()
@@ -354,6 +362,29 @@ class Keybase(object):
             fname=fname,
             sigfname=sigfname,
             throw_error=throw_error)
+
+    def encrypt(self, data, **kwargs):
+        '''
+        Equivalent to::
+
+            kbase = Keybase('irc')
+            pkey = kbase.get_public_key()
+            verified = pkey.encrypt(data, **kwargs)
+            assert verified
+
+        It's a convenience method on the Keybase object to do data
+        verification with the primary key.
+
+        For more information see :mod:`keybase.KeybasePublicKey.encrypt`.
+
+        If the instance hasn't been bound to a username yet it throws a
+        :mod:`keybase.KeybaseUnboundInstanceError`.
+        '''
+        self._raise_unbound_error('Unable to fetch public key')
+        pkey = self.get_public_key()
+        return pkey.encrypt(
+            data=data,
+            **kwargs)
 
     @staticmethod
     def _build_url(endpoint):
@@ -490,6 +521,9 @@ class KeybasePublicKey(object):
                 self.__data[key] = datetime.datetime.fromtimestamp(int(value))
             else:
                 self.__data[key] = value
+        self.__cipher_algos = self.__get_gpg_config('ciphername')
+        self.__digest_algos = self.__get_gpg_config('digestname')
+        self.__compress_algos = ['ZLIB', 'BZIP2', 'ZIP', 'Uncompressed']
         self.__gpg = None
         self.__tempdir = tempfile.mkdtemp(suffix='.keybase')
         if self.bundle:
@@ -575,6 +609,67 @@ class KeybasePublicKey(object):
         The GPG fingerprint for the key.
         '''
         return self.__property_getter('key_fingerprint').lower()
+
+    @property
+    def cipher_algos(self):
+        '''
+        Returns a tuple of available cypher algorithms that you can use with
+        this key to encrypt data. The available algorithms depend entirely
+        on the GPG version installed on the machine though most, if not
+        all GPG versions, support ``AES256``.
+
+        >>> kbase = Keybase('irc')
+        >>> pkey = kbase.get_public_key()
+        >>> pkey.cipher_algos
+        ('IDEA', '3DES', 'CAST5', 'BLOWFISH', 'AES', 'AES192', 'AES256', 'TWOFISH', 'CAMELLIA128', 'CAMELLIA192', 'CAMELLIA256')
+        '''
+        return tuple(self.__cipher_algos)
+
+    @property
+    def digest_algos(self):
+        '''
+        Returns a tuple of available digest algorithms that you can use with
+        this key to hash data. The available algorithms depend entirely
+        on the GPG version installed on the machine though most, if not
+        all GPG versions, support ``SHA512``.
+
+        >>> kbase = Keybase('irc')
+        >>> pkey = kbase.get_public_key()
+        >>> pkey.digest_algos
+        ('MD5', 'SHA1', 'RIPEMD160', 'SHA256', 'SHA384', 'SHA512', 'SHA224')
+        '''
+        return tuple(self.__digest_algos)
+
+    @property
+    def compress_algos(self):
+        '''
+        Returns a tuple of available compression algorithms that you can use
+        with this key to compress encrypted data. The available algorithms
+        depend entirely on the GPG version installed on the machine though
+        most, if not all GPG versions, support ``ZLIB``.
+
+        >>> kbase = Keybase('irc')
+        >>> pkey = kbase.get_public_key()
+        >>> pkey.compress_algos
+        ('ZLIB', 'BZIP2', 'ZIP', 'Uncompressed')
+        '''
+        return tuple(self.__compress_algos)
+
+    def __get_gpg_config(self, config):
+        '''
+        Returns, as a list, the value of the ``config`` property from the
+        installed GPG version. If the ``config`` property is a string it 
+        will be the only element in the list, otherwise it will be a list
+        of values the property can support.
+        '''
+        values = list()
+        command = [gpg(), '--with-colons', '--list-config', config]
+        output = subprocess.check_output(command)
+        output = output.strip()
+        (cfg, configname, clist) = output.strip().split(':', 2)
+        if cfg == 'cfg' and configname == config and clist:
+            values = clist.split(';')
+        return values
 
     def __property_getter(self, prop):
         '''
@@ -676,7 +771,7 @@ class KeybasePublicKey(object):
 
         If a ``sigfname`` argument is prodived it's assumed to be a path to
         signature file for a detached signature. A detached signature is
-        usually produced like so:::
+        usually produced like so::
 
             gpg -u keybase.io/irc --detach-sign helloworld.txt
 
@@ -699,6 +794,22 @@ class KeybasePublicKey(object):
 
         For more information what these messages mean please see the
         :py:class:`gnupg._parsers.Verify` manual page.
+
+        An embedded signature example::
+
+            kbase = Keybase('irc')
+            pkey = kbase.get_public_key()
+            verified = pkey.verify_file('helloworld.txt.gpg')
+            assert verified
+
+        A detached signature example::
+
+            kbase = Keybase('irc')
+            pkey = kbase.get_public_key()
+            fname = 'helloworld.txt'
+            signame = 'helloworld.txt.sig'
+            verified = pkey.verify_file(fname, signame)
+            assert verified
         '''
         vobj = None
         if not sigfname:
@@ -715,6 +826,95 @@ class KeybasePublicKey(object):
         if throw_error:
             raise KeybasePublicKeyVerifyError('{}'.format(vobj.status))
         return False
+
+    def encrypt(
+        self,
+        data,
+        armor=True,
+        cipher_algo=None,
+        digest_algo=None,
+        compress_algo=None):
+        '''
+        Encrypt the message contained in the string ``data`` for the owner
+        of this KeybasePublicKey instance.
+
+        If ``armor=True`` the output is ASCII armored; otherwise the output
+        will be a
+        `gnupg._parsers.Crypt object <https://python-gnupg.readthedocs.org/en/latest/gnupg.html#gnupg._parsers.Crypt>`_.
+
+        If encryption fails a KeybasePublicKeyEncryptError is raised.
+
+        If it succeeds data object is returned. Assuming ``armor=True`` the
+        returned data is just plain old ASCII text as a ``str()``.
+
+        .. note::
+
+            The remaining options are supplied for maximum flexibility with GPG
+            but you can, for the most part, just ignore them and go with the
+            defaults if you want the simpilest (but still secure) path to
+            encrypting data with this API.
+
+        If ``cipher_algo`` is supplied it should be the name of a cipher
+        algorithm to use. The default algorithm is ``AES256`` and you can
+        get a list of available algorithms from the
+        :func:`keybase.KeybasePublicKey.crypto_algos` parameter.
+
+        If ``digest_algo`` is supplied it should be the name of a digest
+        algorithm to use. The default is ``SHA512`` and you can get a list of
+        available algorithms from the
+        :func:`keybase.KeybasePublicKey.digest_algos` parameter.
+
+        If ``compress_algo`` is supplied it should be the name of a compression
+        algorithm to use. The default is ``ZIP`` and you can get a list of
+        available algorithms from the 
+        :func:`keybase.KeybasePublicKey.compress_algos` parameter.
+
+        For more information on how encryption works please see the
+        :py:class:`gnupg.encrypt` manual page.
+
+        A simple example::
+
+            kbase = Keybase('irc')
+            pkey = kbase.get_public_key()
+            instring = 'Hello, world!'
+            encrypted = pkey.encrypt(instring)
+            assert encrypted
+            assert not encrypted.isspace()
+            assert encrypted != instring
+        '''
+        # For a list of things we can put in kwargs see:
+        # https://python-gnupg.readthedocs.org/en/latest/gnupg.html#gnupg.GPG.encrypt
+        kwargs = dict()
+        if cipher_algo:
+            if cipher_algo not in self.__cipher_algos:
+                raise KeybasePublicKeyEncryptError(
+                    'cipher algorithm {} unrecognized'.format(cipher_algo))
+            kwargs['cipher_algo'] = cipher_algo
+        if digest_algo:
+            if digest_algo not in self.__digest_algos:
+                raise KeybasePublicKeyEncryptError(
+                    'digest algorithm {} unrecognized'.format(digest_algo))
+            kwargs['digest_algo'] = digest_algo
+        if compress_algo:
+            if compress_algo not in self.__compress_algos:
+                raise KeybasePublicKeyEncryptError(
+                    'compression algorithm {} unrecognized'.format(compress_algo))
+            kwargs['compress_algo'] = compress_algo
+        else:
+            kwargs['compress_algo'] = 'ZIP'
+        kwargs['armor'] = armor
+        kwargs['encrypt'] = True
+        kwargs['symmetric'] = False
+        kwargs['always_trust'] = True
+        encrypted = self.__gpg.encrypt(
+            data,
+            self.__gpg.list_keys()[0]['keyid'],
+            **kwargs)
+        if not encrypted:
+            raise KeybasePublicKeyEncryptError('unable to encrypt data')
+        if armor:
+            encrypted = str(encrypted)
+        return encrypted
 
 class KeybaseError(Exception):
     '''
@@ -753,6 +953,13 @@ class KeybasePublicKeyError(Exception):
 class KeybasePublicKeyVerifyError(Exception):
     '''
     Thrown when a KeybasePublicKey cannot verify the signature on a
+    data object.
+    '''
+    pass
+
+class KeybasePublicKeyEncryptError(Exception):
+    '''
+    Thrown when a KeybasePublicKey cannot perform encryption on some
     data object.
     '''
     pass

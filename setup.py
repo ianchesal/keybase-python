@@ -30,11 +30,9 @@ messages and files for a user or verify a signature on a file from a user.
 Eventually it will be extended to allow you to administer Keybase user
 identities and their associated public/private keypairs via the ``KeybaseAdmin`` class.
 
-Documentation
--------------
-
 The official documentation for the project can be found here: http://keybase-python-api.readthedocs.org/en/latest/
 
+The source code for the project can be found here: https://github.com/ianchesal/keybase-python
 '''
 
 class PyTest(TestCommand):

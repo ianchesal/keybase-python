@@ -8,7 +8,9 @@
 '''
 
 #pylint: disable=R0902
+#pylint: disable=R0913
 #pylint: disable=C0301
+#pylint: disable=W0142
 
 import datetime
 import requests
@@ -17,7 +19,6 @@ import gnupg
 import tempfile
 import shutil
 import subprocess
-import unicodedata
 
 def gpg(binary=None):
     '''
@@ -521,8 +522,8 @@ class KeybasePublicKey(object):
                 self.__data[key] = datetime.datetime.fromtimestamp(int(value))
             else:
                 self.__data[key] = value
-        self.__cipher_algos = self.__get_gpg_config('ciphername')
-        self.__digest_algos = self.__get_gpg_config('digestname')
+        self.__cipher_algos = KeybasePublicKey.__get_gpg_config('ciphername')
+        self.__digest_algos = KeybasePublicKey.__get_gpg_config('digestname')
         self.__compress_algos = ['ZLIB', 'BZIP2', 'ZIP', 'Uncompressed']
         self.__gpg = None
         self.__tempdir = tempfile.mkdtemp(suffix='.keybase')
@@ -655,10 +656,11 @@ class KeybasePublicKey(object):
         '''
         return tuple(self.__compress_algos)
 
-    def __get_gpg_config(self, config):
+    @staticmethod
+    def __get_gpg_config(config):
         '''
         Returns, as a list, the value of the ``config`` property from the
-        installed GPG version. If the ``config`` property is a string it 
+        installed GPG version. If the ``config`` property is a string it
         will be the only element in the list, otherwise it will be a list
         of values the property can support.
         '''
@@ -866,7 +868,7 @@ class KeybasePublicKey(object):
 
         If ``compress_algo`` is supplied it should be the name of a compression
         algorithm to use. The default is ``ZIP`` and you can get a list of
-        available algorithms from the 
+        available algorithms from the
         :func:`keybase.KeybasePublicKey.compress_algos` parameter.
 
         For more information on how encryption works please see the

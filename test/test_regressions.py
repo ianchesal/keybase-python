@@ -5,11 +5,13 @@ These perform comparisons against golden file patterns to ensure that tests
 are passing and not failing.
 '''
 
+import filecmp
+import gnupg
 import os
 import pytest
-import tempfile
 import shutil
-import gnupg
+import tempfile
+
 import keybase
 
 
@@ -97,19 +99,12 @@ def compare_string_to_file(somestring, somefile):
 def compare_files(leftfile, rightfile):
     '''
     Loads the contents of two files and compares them for absolute
-    equality. Does this in an most horribly memory inefficient manner for
-    now so don't use it for large file comparisons.
+    equality. 
 
     Returns True if the string matches the file contents. Returns False
     if they do not match.
     '''
-    is_equal = False
-    with open(leftfile, 'r') as lfile:
-        with open(rightfile, 'r') as rfile:
-            lcontents = lfile.read()
-            rcontents = rfile.read()
-            is_equal = lcontents == rcontents
-    return is_equal
+    return filecmp.cmp(leftfile, rightfile, shallow=False)
 
 def test_public_key_downloading():
     '''
@@ -146,7 +141,7 @@ def test_verify_file_embedded_signature():
 
         gpg -u keybase.io/irc --sign helloworld.txt
 
-    So it's binary output and prefixed with .gpg.
+    So it's binary output and suffixed with .gpg.
     '''
     k = keybase.Keybase('irc')
     pkey = k.get_public_key()

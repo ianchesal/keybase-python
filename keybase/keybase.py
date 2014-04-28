@@ -13,12 +13,12 @@
 #pylint: disable=W0142
 
 import datetime
-import requests
-import os
 import gnupg
-import tempfile
+import os
+import requests
 import shutil
 import subprocess
+import tempfile
 
 def gpg(binary=None):
     '''

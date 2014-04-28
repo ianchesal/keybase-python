@@ -12,10 +12,15 @@
 #pylint: disable=C0301
 #pylint: disable=W0142
 
+import base64
+import binascii
 import datetime
 import gnupg
+import hashlib
+import hmac
 import os
 import requests
+import scrypt
 import shutil
 import subprocess
 import tempfile
@@ -80,6 +85,31 @@ def _which(executable, flags=os.X_OK):
             if os.access(pext, flags):
                 result.append(tpath)
     return result
+
+def get_json_from_url(url, params, method='get', timeout=10):
+    '''
+    Function to perform HTTP requests (get or post) with given parameters
+    and return JSON formatted data.
+    
+    >>> salt_url = 'https://keybase.io/_/api/1.0/getsalt.json'
+    >>> parameters = {'email_or_username': 'bpugh'}
+    >>> example = get_json_from_url(salt_url, parameters, method='get')
+    >>> example['status'] == {u'code': 0, u'name': u'OK'}
+    True
+    >>> example['salt'] == u'e4725d30ed9df0082df4197596c4110c'
+    True
+    >>> example['login_session'] is not None
+    True
+    '''
+    if method == 'get':
+        method = requests.get
+    elif method == 'post':
+        method = requests.post
+    else:
+        raise ValueError, "method must be 'get' or 'post'"
+    resp = method(url, params=params)
+    resp.raise_for_status()
+    return resp.json()
 
 class Keybase(object):
     '''
@@ -285,9 +315,7 @@ class Keybase(object):
                 'Keybase object already bound to username \'{}\''.format(self._username))
         url = self._build_url('user/lookup.json')
         payload = {'username': username}
-        resp = requests.get(url, params=payload, timeout=10)
-        resp.raise_for_status()
-        jresponse = resp.json()
+        jresponse = get_json_from_url(url, payload, method = 'get')
         # Pendantic searching of the status section of the API's JSON
         # response. We could just leave it up to the 'them' section
         # existing or not but future API changes may require that we
@@ -299,11 +327,7 @@ class Keybase(object):
                 'url': resp.url,
                 'response': resp.text
                 })
-        if jresponse['status']['name'] == 'NOT_FOUND':
-            raise KeybaseUserNotFound('User {} not found'.format(username), {
-                'url': resp.url,
-                })
-        if jresponse['status']['name'] == 'INPUT_ERROR':
+        if jresponse['status']['name'] == ('NOT_FOUND' or 'INPUT_ERROR'):
             raise KeybaseUserNotFound('User {} not found'.format(username), {
                 'url': resp.url,
                 })
@@ -427,6 +451,7 @@ class KeybaseAdmin(Keybase):
         Keybase.__init__(self, username)
         self.__salt = None
         self.__session_cookie = None
+        self.__user_object = None
 
     @property
     def salt(self):
@@ -463,9 +488,7 @@ class KeybaseAdmin(Keybase):
         self._raise_unbound_error('Unable to retrieve salt from keybase.io')
         url = self._build_url('getsalt.json')
         payload = {'email_or_username': self._username}
-        resp = requests.get(url, params=payload, timeout=10)
-        resp.raise_for_status()
-        jresponse = resp.json()
+        jresponse = get_json_from_url(url, payload, method = 'get')
         if not 'salt' in jresponse:
             raise KeybaseError('_get_salt(): No salt value returned for login {0}'.format(self._username))
         if not 'login_session' in jresponse:
@@ -473,13 +496,13 @@ class KeybaseAdmin(Keybase):
         self.__salt = jresponse['salt']
         return jresponse['login_session']
 
-    def login(self, password):
+    def login(self, passphrase):
         '''
         Executes a two-round login procedure for a user using the supplied
-        password to authenticate. The first round involves looking up the
+        passphrase to authenticate. The first round involves looking up the
         user and getting their salt and a challenge in the form of a login
-        session ID. The second round involves computing the password hash
-        and using it to answer the password challenge.
+        session ID. The second round involves computing the passphrase hash
+        and using it to answer the passphrase challenge.
 
         If the login succeeds the method returns True and a session ID is
         stored in the instance along with all the user object details returned
@@ -490,6 +513,16 @@ class KeybaseAdmin(Keybase):
         '''
         self._raise_unbound_error('Unable to log in to keybase.io')
         login_session = self._get_salt()
+        pwh = scrypt.hash(passphrase, binascii.unhexlify(self.__salt), N=2**15, r=8, p=1, buflen=224)[192:224]
+        hmac_pwh = hmac.new(pwh, base64.b64decode(login_session), hashlib.sha512)
+        url = self._build_url('login.json')
+        payload = {'email_or_username': self._username,
+                   'hmac_pwh': binascii.hexlify(hmac_pwh.digest()), 
+                   'login_session': login_session}
+        self.__user_object = get_json_from_url(url, payload, method = 'post')
+        assert self.__user_object['session'], "Session doesn't exist in login response"
+        self.__session_cookie = self.__user_object['session']
+        return True
 
 class KeybasePublicKey(object):
     '''
@@ -675,7 +708,7 @@ class KeybasePublicKey(object):
 
     def __property_getter(self, prop):
         '''
-        Get a random property value from the __data dictionary in the
+        Get an arbitrary property value from the __data dictionary in the
         object. Returns the value or None if the property isn't in the
         dictionary.
         '''

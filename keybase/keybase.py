@@ -306,7 +306,7 @@ class Keybase(object):
         >>> kbase2.lookup('abcdefghijklmno123')
         Traceback (most recent call last):
         ...
-        KeybaseUserNotFound: ('User abcdefghijklmno123 not found', {'url': u'https://keybase.io/_/api/1.0/user/lookup.json?username=abcdefghijklmno123'})
+        KeybaseUserNotFound: User abcdefghijklmno123 not found
         '''
         # If this object is already initialized then the user shouldn't
         # be calling this method a second time.
@@ -323,19 +323,11 @@ class Keybase(object):
         # in the response and the response codes therein so lets prepare
         # for that now.
         if not 'status' in jresponse or not 'name' in jresponse['status']:
-            raise KeybaseError('Malformed API response to user/lookup.json request', {
-                'url': resp.url,
-                'response': resp.text
-                })
-        if jresponse['status']['name'] == ('NOT_FOUND' or 'INPUT_ERROR'):
-            raise KeybaseUserNotFound('User {} not found'.format(username), {
-                'url': resp.url,
-                })
+            raise KeybaseError('Malformed API response to user/lookup.json request')
+        if jresponse['status']['name'] in ('NOT_FOUND', 'INPUT_ERROR'):
+            raise KeybaseUserNotFound('User {} not found'.format(username))
         if not 'them' in jresponse:
-            raise KeybaseError('Malformed API response to user/lookup.json request', {
-                'url': resp.url,
-                'response': resp.text
-                })
+            raise KeybaseError('Malformed API response to user/lookup.json request')
         # Initialize this user from the 'them' part of the reponse.
         self._user_object = jresponse['them']
         self._username = username

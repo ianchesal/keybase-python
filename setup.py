@@ -82,6 +82,7 @@ setup(
         'pytest-cov>=1.6',
         'pytest>=2.5.2',
         'requests>=2.2.1',
+        'scrypt>=0.6.1',
         'Sphinx>=1.2.2',
         'sphinx_rtd_theme>=0.1.6',
         'tox>=1.7.1',

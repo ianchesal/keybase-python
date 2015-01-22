@@ -83,8 +83,8 @@ Given some `str` formatted data, you can create an ASCII armored, encrypted `str
 Most of the testing was done against GnuPG:
 
     > gpg2 --version
-    gpg (GnuPG) 2.0.22
-    libgcrypt 1.6.1
+    gpg (GnuPG) 2.0.26
+    libgcrypt 1.6.2
     Copyright (C) 2013 Free Software Foundation, Inc.
     License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
     This is free software: you are free to change and redistribute it.
@@ -92,7 +92,7 @@ Most of the testing was done against GnuPG:
 
     Home: ~/.gnupg
     Supported algorithms:
-    Pubkey: RSA, ELG, DSA, ECC, ?
+    Pubkey: RSA, RSA, RSA, ELG, DSA
     Cipher: IDEA, 3DES, CAST5, BLOWFISH, AES, AES192, AES256, TWOFISH,
             CAMELLIA128, CAMELLIA192, CAMELLIA256
     Hash: MD5, SHA1, RIPEMD160, SHA256, SHA384, SHA512, SHA224

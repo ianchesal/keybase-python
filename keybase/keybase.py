@@ -86,11 +86,11 @@ def _which(executable, flags=os.X_OK):
                 result.append(tpath)
     return result
 
-def get_json_from_url(url, params, method='get', timeout=10):
+def get_json_from_url(url, params, method='get'):
     '''
     Function to perform HTTP requests (get or post) with given parameters
     and return JSON formatted data.
-    
+
     >>> salt_url = 'https://keybase.io/_/api/1.0/getsalt.json'
     >>> parameters = {'email_or_username': 'bpugh'}
     >>> example = get_json_from_url(salt_url, parameters, method='get')
@@ -118,14 +118,24 @@ class Keybase(object):
     public key data like encrypt a message for them or verify that a message
     they signed to you was actually signed by them.
 
-    If you supply a username the user's public information will be
-    automatically retrieved. If the username doesn't exist a
-    :mod:`keybase.KeybaseUserNotFound` exception will be raised.
+    The public information is automatically retrieved when you build a new
+    instance of the class.
 
-    If you don't supply a username you can initiate a user lookup by
-    using the :func:`keybase.Keybase.lookup` method on the object after
-    you create
-    it.
+    >>> kbase = Keybase('irc')
+    >>> kbase.username
+    'irc'
+
+    If the user cannot be found a :mod:`keybase.KeybaseUserNotFound`
+    exception is raised:
+
+    >>> kbase = Keybase('abcdefghijklmno123notauserhahaha')
+    Traceback (most recent call last):
+    ...
+    KeybaseUserNotFound: User abcdefghijklmno123notauserhahaha not found
+
+    To get the private view of the user you need to authenticate as
+    the user using the login() method after successfully looking the
+    user up in keybase.io.
 
     .. note::
 
@@ -138,12 +148,11 @@ class Keybase(object):
     KEYBASE_BASE_URL = 'https://keybase.io/_/api/'
     KEYBASE_API_VERSION = '1.0'
 
-    def __init__(self, username=None):
+    def __init__(self, username):
         self._username = None
         self._user_object = None
         self.__lookup_performed = False
-        if username:
-            self.lookup(username)
+        self.__lookup(username)
 
     @property
     def name(self):
@@ -193,13 +202,13 @@ class Keybase(object):
 
         >>> kbase = Keybase('irc')
         >>> kbase.public_keys
-        (u'primary',)
+        (u'families', u'primary', u'sibkeys', u'subkeys')
         '''
         pkeys = list()
         if self._user_object:
             if 'public_keys' in self._user_object:
                 pkeys = self._user_object['public_keys'].keys()
-        return tuple(pkeys)
+        return tuple(sorted(pkeys))
 
     def _section_getter(self, section, key):
         '''
@@ -258,14 +267,6 @@ class Keybase(object):
 
         >>> kbase.get_public_key('thiskeydoesnotexist')
 
-        If the instance hasn't been bound to a username yet it throws a
-        :mod:`keybase.KeybaseUnboundInstanceError`.
-
-        >>> kbase = Keybase()
-        >>> kbase.get_public_key()
-        Traceback (most recent call last):
-        ...
-        KeybaseUnboundInstanceError: Unable to fetch public key
         '''
         self._raise_unbound_error('Unable to fetch public key')
         key = None
@@ -273,65 +274,6 @@ class Keybase(object):
             key_data = self._user_object['public_keys'][keyname]
             key = KeybasePublicKey(**key_data)
         return key
-
-    def lookup(self, username):
-        '''
-        Looks up a user in the keybase.io public directory and initializes
-        this Keybase class instance with the user's public keybase.io
-        details.
-
-        >>> kbase = Keybase()
-        >>> kbase.username
-        >>> kbase.lookup('irc')
-        >>> kbase.username
-        'irc'
-
-        The lookup() method can be called until the first successful user
-        is found in keybase.io. After that, subsequent lookup calls will
-        raise a :mod:`keybase.KeybaseLookupInvalidError` exception:
-
-        >>> kbase.lookup('ab')
-        Traceback (most recent call last):
-        ...
-        KeybaseLookupInvalidError: Keybase object already bound to username 'irc'
-
-        To get the private view of the user you need to authenticate as
-        the user using the login() method after successfully looking the
-        user up in keybase.io.
-
-        If the user cannot be found a :mod:`keybase.KeybaseUserNotFound`
-        exception is raised:
-
-        >>> kbase2 = Keybase()
-        >>> kbase2.lookup('abcdefghijklmno123')
-        Traceback (most recent call last):
-        ...
-        KeybaseUserNotFound: User abcdefghijklmno123 not found
-        '''
-        # If this object is already initialized then the user shouldn't
-        # be calling this method a second time.
-        if self.__lookup_performed:
-            raise KeybaseLookupInvalidError(
-                'Keybase object already bound to username \'{}\''.format(self._username))
-        url = self._build_url('user/lookup.json')
-        payload = {'username': username}
-        jresponse = get_json_from_url(url, payload, method = 'get')
-        # Pendantic searching of the status section of the API's JSON
-        # response. We could just leave it up to the 'them' section
-        # existing or not but future API changes may require that we
-        # handle the response differently based on the statue section
-        # in the response and the response codes therein so lets prepare
-        # for that now.
-        if not 'status' in jresponse or not 'name' in jresponse['status']:
-            raise KeybaseError('Malformed API response to user/lookup.json request')
-        if jresponse['status']['name'] in ('NOT_FOUND', 'INPUT_ERROR'):
-            raise KeybaseUserNotFound('User {} not found'.format(username))
-        if not 'them' in jresponse:
-            raise KeybaseError('Malformed API response to user/lookup.json request')
-        # Initialize this user from the 'them' part of the reponse.
-        self._user_object = jresponse['them']
-        self._username = username
-        self.__lookup_performed = True
 
     def verify(self, data, throw_error=False):
         '''
@@ -402,6 +344,40 @@ class Keybase(object):
         return pkey.encrypt(
             data=data,
             **kwargs)
+
+    def __lookup(self, username):
+        '''
+        Looks up a user in the keybase.io public directory and initializes
+        this Keybase class instance with the user's public keybase.io
+        details.
+
+        If the user cannot be found a :mod:`keybase.KeybaseUserNotFound`
+        exception is raised:
+        '''
+        # If this object is already initialized then the user shouldn't
+        # be calling this method a second time.
+        if self.__lookup_performed:
+            raise KeybaseLookupInvalidError(
+                'Keybase object already bound to username \'{}\''.format(self._username))
+        url = self._build_url('user/lookup.json')
+        payload = {'username': username}
+        jresponse = get_json_from_url(url, payload, method='get')
+        # Pendantic searching of the status section of the API's JSON
+        # response. We could just leave it up to the 'them' section
+        # existing or not but future API changes may require that we
+        # handle the response differently based on the statue section
+        # in the response and the response codes therein so lets prepare
+        # for that now.
+        if not 'status' in jresponse or not 'name' in jresponse['status']:
+            raise KeybaseError('Malformed API response to user/lookup.json request')
+        if jresponse['status']['name'] in ('NOT_FOUND', 'INPUT_ERROR'):
+            raise KeybaseUserNotFound('User {} not found'.format(username))
+        if not 'them' in jresponse:
+            raise KeybaseError('Malformed API response to user/lookup.json request')
+        # Initialize this user from the 'them' part of the reponse.
+        self._user_object = jresponse['them']
+        self._username = username
+        self.__lookup_performed = True
 
     @staticmethod
     def _build_url(endpoint):
@@ -480,7 +456,7 @@ class KeybaseAdmin(Keybase):
         self._raise_unbound_error('Unable to retrieve salt from keybase.io')
         url = self._build_url('getsalt.json')
         payload = {'email_or_username': self._username}
-        jresponse = get_json_from_url(url, payload, method = 'get')
+        jresponse = get_json_from_url(url, payload, method='get')
         if not 'salt' in jresponse:
             raise KeybaseError('_get_salt(): No salt value returned for login {0}'.format(self._username))
         if not 'login_session' in jresponse:
@@ -509,9 +485,9 @@ class KeybaseAdmin(Keybase):
         hmac_pwh = hmac.new(pwh, base64.b64decode(login_session), hashlib.sha512)
         url = self._build_url('login.json')
         payload = {'email_or_username': self._username,
-                   'hmac_pwh': binascii.hexlify(hmac_pwh.digest()), 
+                   'hmac_pwh': binascii.hexlify(hmac_pwh.digest()),
                    'login_session': login_session}
-        self.__user_object = get_json_from_url(url, payload, method = 'post')
+        self.__user_object = get_json_from_url(url, payload, method='post')
         assert self.__user_object['session'], "Session doesn't exist in login response"
         self.__session_cookie = self.__user_object['session']
         return True
@@ -839,15 +815,8 @@ class KeybasePublicKey(object):
             assert verified
         '''
         vobj = None
-        if not sigfname:
-            # The embedded signature version of the GPG call expects
-            # a file object, not a file name, for some reason so...
-            with open(fname, 'rb') as fobj:
-                vobj = self.__gpg.verify_file(fobj)
-        else:
-            # The detached signature version of the GPG call expects
-            # file names so...
-            vobj = self.__gpg.verify_file(fname, sigfname)
+        with open(fname, 'r') as fobj:
+            vobj = self.__gpg.verify_file(fobj, sigfname)
         if vobj.valid:
             return True
         if throw_error:
@@ -855,12 +824,12 @@ class KeybasePublicKey(object):
         return False
 
     def encrypt(
-        self,
-        data,
-        armor=True,
-        cipher_algo=None,
-        digest_algo=None,
-        compress_algo=None):
+            self,
+            data,
+            armor=True,
+            cipher_algo=None,
+            digest_algo=None,
+            compress_algo=None):
         '''
         Encrypt the message contained in the string ``data`` for the owner
         of this KeybasePublicKey instance.

@@ -5,10 +5,14 @@ These perform comparisons against golden file patterns to ensure that tests
 are passing and not failing.
 '''
 
+#pylint: disable=R0902
+#pylint: disable=R0913
+#pylint: disable=C0301
+#pylint: disable=W0142
+
 import filecmp
 import gnupg
 import os
-import pytest
 import shutil
 import tempfile
 
@@ -74,7 +78,7 @@ def compare_string_to_file(somestring, somefile):
     Loads the contents of somefile in to a str variable and asserts that
     it's equal to whatever somestring points to.
 
-    This should only be used for really small comparisons. For big 
+    This should only be used for really small comparisons. For big
     comparisons you want to use:
 
         compare_stream_to_file(somestream, somefile)
@@ -99,7 +103,7 @@ def compare_string_to_file(somestring, somefile):
 def compare_files(leftfile, rightfile):
     '''
     Loads the contents of two files and compares them for absolute
-    equality. 
+    equality.
 
     Returns True if the string matches the file contents. Returns False
     if they do not match.
@@ -134,7 +138,7 @@ def test_public_key_gpg_integration():
     del gpg
     shutil.rmtree(tempdir)
 
-def test_verify_file_embedded_signature():
+def test_verify_file_embedded_sig():
     '''
     Verifies the signature on an embedded, signed file. This is a file signed
     with:
@@ -161,9 +165,9 @@ def test_verify_file_embedded_signature():
     del gpg
     shutil.rmtree(tempdir)
 
-def test_verify_file_detached_signature():
+def test_verify_file_detached_sig():
     '''
-    Verifies the signature on an embedded, signed file. This is a file signed
+    Verifies the signature on a detatched, signed file. This is a file signed
     with:
 
         gpg -u keybase.io/irc --detach-sign helloworld.txt
@@ -184,12 +188,16 @@ def test_verify_file_detached_signature():
     tempdir = tempfile.mkdtemp(suffix='.keybase-test')
     gpg = gnupg.GPG(homedir=tempdir, verbose=False, use_agent=False, binary=keybase.gpg())
     gpg.import_keys(GPG_KEY_DATA)
-    vobj = gpg.verify_file(fname, fsig)
+    with open(fname, 'rb') as fobj:
+        vobj = gpg.verify_file(fobj, fsig)
     assert vobj.valid
     del gpg
     shutil.rmtree(tempdir)
 
 def test_encrypt_string_data():
+    '''
+    Verifies that string data can be encrypted with the library.
+    '''
     k = keybase.Keybase('irc')
     pkey = k.get_public_key()
     instring = 'Hello, world!'
@@ -221,9 +229,10 @@ def test_gpg_encrypt():
     shutil.rmtree(tempdir)
 
 # You can use this stuff for debugging interactively:
-#import logging
-#logging.basicConfig(level=logging.DEBUG)
+import logging
+logging.basicConfig(level=logging.DEBUG)
 #test_encrypt_string_data()
 #test_gpg_encrypt()
-#test_verify_file_embedded_signature()
-#test_verify_file_detached_signature()
+#test_verify_file_embedded_sig()
+test_verify_file_detached_sig()
+

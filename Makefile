@@ -3,6 +3,9 @@
 
 .PHONY: docs release clean
 
+setup: clean
+	pip install --upgrade -r requirements.txt
+
 clean:
 	rm -rf .tox
 	rm -rf test/__pycache__

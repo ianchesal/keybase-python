@@ -147,6 +147,43 @@ class Keybase(object):
 
     KEYBASE_BASE_URL = 'https://keybase.io/_/api/'
     KEYBASE_API_VERSION = '1.0'
+    TWITTER = 'twitter'
+    GITHUB = 'github'
+    HACKERNEWS = 'hackernews'
+    WEB = 'web'
+    COINBASE = 'coinbase'
+    KEYFINGERPRINT = 'key_fingerprint'
+
+    @classmethod
+    def discover(cls, idtype, ids):
+        '''
+        Lookup Keybase accounts using other information like Twitter handles
+        or Github user names. You can pass an iterable of IDs to lookup and you
+        will get back a tuple of Keybase instances for every user found that
+        matches the list. There maybe be more Keybase instances in the list
+        than in the input array if partial matches occured.
+
+        >>> Keybase.discover(keybase.TWITTER, ['ircri'])
+
+        Valid types are:
+
+            TWITTER - twitter usernames to include in results
+            GITHUB
+            HACKERNEWS
+            WEB
+            COINBASE
+            KEYFINGERPRINT
+
+        If you pass an unrecognized ID type it will raise a
+        KeybaseInvalidIdTypeError:
+
+        >>> Keybase.discover(keybase.INVALIDTYPE, ['ircri'])
+        ...
+        KeybaseInvalidIdTypeError
+
+        Something else?
+        '''
+        pass
 
     def __init__(self, username):
         self._username = None

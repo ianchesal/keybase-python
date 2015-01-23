@@ -228,6 +228,12 @@ def test_gpg_encrypt():
     del gpg
     shutil.rmtree(tempdir)
 
+def test_discover():
+    '''
+    Tests the discover() method to make sure it functions.
+    '''
+    pass
+
 # You can use this stuff for debugging interactively:
 import logging
 logging.basicConfig(level=logging.DEBUG)

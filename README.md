@@ -21,7 +21,7 @@ The official documentation for the project can be found here: http://keybase-pyt
 
 ### Installation
 
-    pip install keybase-api
+    [sudo] pip install keybase-api
 
 ## Examples
 
@@ -77,6 +77,21 @@ Given some `str` formatted data, you can create an ASCII armored, encrypted `str
     assert encrypted != instring
 
 ## Development
+
+### VirtualEnv
+
+I highly recommend you develop using VirtualEnv. It keeps dependency stuff somewhat sane. The `.gitignore` file is set expecting you to keep your virtual environment in `.venv` like so:
+
+    [sudo] pip install virtualenv
+    cd ~/code
+    git clone git@github.com:ianchesal/keybase-python.git
+    cd keybase-python
+    virtualenv .venv
+    source .venv/bin/activate
+    ...
+    <do your development work now>
+    ...
+    deactivate
 
 ### GnuPG
 

@@ -16,8 +16,7 @@ import os
 import shutil
 import tempfile
 
-import keybase
-
+from keybase import keybase
 
 GPG_KEY_DATA = '''-----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: Keybase OpenPGP v0.1.1
@@ -228,11 +227,32 @@ def test_gpg_encrypt():
     del gpg
     shutil.rmtree(tempdir)
 
+def test_discover():
+    '''
+    Tests the discover() method to make sure it functions.
+    '''
+    users = keybase.discover(keybase.TWITTER, ['ircri'])
+    assert len(users) > 0
+    k = users[0]
+    assert type(k).__name__ == 'Keybase'
+    assert k.username == 'irc'
+    pkey = k.get_public_key()
+    instring = 'Hello, world!'
+    encrypted = pkey.encrypt(instring)
+    assert encrypted
+    assert not encrypted.isspace()
+    assert encrypted != instring
+    encrypted2 = k.encrypt(instring)
+    assert encrypted2
+    assert not encrypted2.isspace()
+    assert encrypted2 != instring
+
 # You can use this stuff for debugging interactively:
-import logging
-logging.basicConfig(level=logging.DEBUG)
+#import logging
+#logging.basicConfig(level=logging.DEBUG)
 #test_encrypt_string_data()
 #test_gpg_encrypt()
 #test_verify_file_embedded_sig()
-test_verify_file_detached_sig()
+#test_verify_file_detached_sig()
+#test_discover()
 

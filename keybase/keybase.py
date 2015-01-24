@@ -10,6 +10,7 @@
 #pylint: disable=R0902
 #pylint: disable=R0913
 #pylint: disable=C0301
+#pylint: disable=C0302
 #pylint: disable=W0142
 
 import base64
@@ -24,6 +25,75 @@ import scrypt
 import shutil
 import subprocess
 import tempfile
+
+################################################################################
+# CONSTANTS
+
+KEYBASE_BASE_URL = 'https://keybase.io/_/api/'
+KEYBASE_API_VERSION = '1.0'
+TWITTER = 'twitter'
+GITHUB = 'github'
+HACKERNEWS = 'hackernews'
+WEB = 'web'
+COINBASE = 'coinbase'
+KEYFINGERPRINT = 'key_fingerprint'
+
+################################################################################
+
+def discover(idtype, ids):
+    '''
+    Lookup Keybase accounts using other information like Twitter handles
+    or Github user names. You can pass an iterable of IDs to lookup and you
+    will get back a tuple of Keybase instances for every user found that
+    matches the list. There maybe be more Keybase instances in the list
+    than in the input array if partial matches occured.
+
+    >>> users = discover(TWITTER, ['ircri'])
+    >>> type(users[0])
+    <class 'keybase.keybase.Keybase'>
+    >>> users[0].username
+    u'irc'
+    >>> users[0].get_public_key().kid
+    u'0101f56ecf27564e5bec1c50250d09efe963cad3138d4dc7f4646c77f6008c1e23cf0a'
+
+    Valid types are:
+
+        TWITTER - match on twitter usernames
+        GITHUB - match on github usernames
+        HACKERNEWS - match on hackernews usernames
+        WEB - match on a website domain name
+        COINBASE - match on a coinbase domain
+        KEYFINGERPRINT - match on a PGP key fingerprint
+
+    No matches to any of the provided IDs does not result in an error, but
+    an empty tuple being returned:
+
+    >>> users = discover(TWITTER, ['jack'])
+    >>> len(users)
+    0
+
+    If you pass an unrecognized ID type it will raise a
+    KeybaseInvalidIdTypeError:
+
+    >>> discover('invalidtype', ['ircri'])
+    Traceback (most recent call last):
+    ...
+    KeybaseInvalidIdTypeError
+    '''
+    uids = []
+    if idtype not in (TWITTER, GITHUB, HACKERNEWS, WEB, COINBASE, KEYFINGERPRINT):
+        raise KeybaseInvalidIdTypeError
+    url = _build_url('user/discover.json')
+    payload = {idtype : (',').join(ids), 'usernames_only' : 1, 'flatten' : 1}
+    jresponse = get_json_from_url(url, payload, method='get')
+    if not 'status' in jresponse or not 'name' in jresponse['status']:
+        raise KeybaseError('Malformed API response to user/discover.json request')
+    if not 'matches' in jresponse:
+        raise KeybaseError('Malformed API response to user/discover.json request')
+    for uid in jresponse['matches']:
+        k = Keybase(uid)
+        uids.append(k)
+    return tuple(uids)
 
 def gpg(binary=None):
     '''
@@ -86,6 +156,26 @@ def _which(executable, flags=os.X_OK):
                 result.append(tpath)
     return result
 
+def _build_url(endpoint):
+    '''
+    Builds a Keybase API URL for endpoint. Returns the URL as
+    a simple string.
+
+    >>> _build_url('foo')
+    'https://keybase.io/_/api/1.0/foo.json'
+    >>> _build_url('/foo/bar.json')
+    'https://keybase.io/_/api/1.0/foo/bar.json'
+    '''
+    if len(endpoint) < 1:
+        raise KeybaseError('Missing URL endpoint for API call')
+    if endpoint[0] != '/':
+        endpoint = '/' + endpoint
+    if not endpoint.endswith('.json'):
+        # All API calls end with .json (at least for our purposes)
+        endpoint = endpoint + '.json'
+    url = KEYBASE_BASE_URL + KEYBASE_API_VERSION + endpoint
+    return url
+
 def get_json_from_url(url, params, method='get'):
     '''
     Function to perform HTTP requests (get or post) with given parameters
@@ -144,10 +234,6 @@ class Keybase(object):
         :mod:`keybase.KeybaseAdmin`.
 
     '''
-
-    KEYBASE_BASE_URL = 'https://keybase.io/_/api/'
-    KEYBASE_API_VERSION = '1.0'
-
     def __init__(self, username):
         self._username = None
         self._user_object = None
@@ -175,13 +261,6 @@ class Keybase(object):
         The username of the person associated with this Keybase data.
         '''
         return self._username
-
-    @property
-    def api_version(self):
-        '''
-        The Keybase API version in use for this instance.
-        '''
-        return self.KEYBASE_API_VERSION
 
     @property
     def is_bound(self):
@@ -359,7 +438,7 @@ class Keybase(object):
         if self.__lookup_performed:
             raise KeybaseLookupInvalidError(
                 'Keybase object already bound to username \'{}\''.format(self._username))
-        url = self._build_url('user/lookup.json')
+        url = _build_url('user/lookup.json')
         payload = {'username': username}
         jresponse = get_json_from_url(url, payload, method='get')
         # Pendantic searching of the status section of the API's JSON
@@ -378,27 +457,6 @@ class Keybase(object):
         self._user_object = jresponse['them']
         self._username = username
         self.__lookup_performed = True
-
-    @staticmethod
-    def _build_url(endpoint):
-        '''
-        Builds a Keybase API URL for endpoint. Returns the URL as
-        a simple string.
-
-        >>> Keybase._build_url('foo')
-        'https://keybase.io/_/api/1.0/foo.json'
-        >>> Keybase._build_url('/foo/bar.json')
-        'https://keybase.io/_/api/1.0/foo/bar.json'
-        '''
-        if len(endpoint) < 1:
-            raise KeybaseError('Missing URL endpoint for API call')
-        if endpoint[0] != '/':
-            endpoint = '/' + endpoint
-        if not endpoint.endswith('.json'):
-            # All API calls end with .json (at least for our purposes)
-            endpoint = endpoint + '.json'
-        url = Keybase.KEYBASE_BASE_URL + Keybase.KEYBASE_API_VERSION + endpoint
-        return url
 
 class KeybaseAdmin(Keybase):
     '''
@@ -454,7 +512,7 @@ class KeybaseAdmin(Keybase):
         5838c199c1b825a069185d5707302693
         '''
         self._raise_unbound_error('Unable to retrieve salt from keybase.io')
-        url = self._build_url('getsalt.json')
+        url = _build_url('getsalt.json')
         payload = {'email_or_username': self._username}
         jresponse = get_json_from_url(url, payload, method='get')
         if not 'salt' in jresponse:
@@ -483,7 +541,7 @@ class KeybaseAdmin(Keybase):
         login_session = self._get_salt()
         pwh = scrypt.hash(passphrase, binascii.unhexlify(self.__salt), N=2**15, r=8, p=1, buflen=224)[192:224]
         hmac_pwh = hmac.new(pwh, base64.b64decode(login_session), hashlib.sha512)
-        url = self._build_url('login.json')
+        url = _build_url('login.json')
         payload = {'email_or_username': self._username,
                    'hmac_pwh': binascii.hexlify(hmac_pwh.digest()),
                    'login_session': login_session}
@@ -915,6 +973,13 @@ class KeybasePublicKey(object):
 class KeybaseError(Exception):
     '''
     General error class for Keybase errors.
+    '''
+    pass
+
+class KeybaseInvalidIdTypeError(Exception):
+    '''
+    Thrown when an invalid ID type is provided to a method that is expecting
+    a static ID type like TWITTER or GITHUB.
     '''
     pass
 

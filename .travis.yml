@@ -1,11 +1,14 @@
 # Travis + Tox
 # Based on what I found at: https://github.com/eventlet/eventlet/blob/master/.travis.yml
 language: python
-python:
-  - "2.7"
-  - "3.2"
-  - "3.3"
-  - "3.4"
+matrix:
+  include:
+    - python: "2.7"
+    - python: "3.3"
+    - python: "3.4"
+  allow_failures:
+    - python: "3.3"
+    - python: "3.4"
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq gnupg2

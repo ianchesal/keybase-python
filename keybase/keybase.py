@@ -83,9 +83,10 @@ def discover(idtype, ids):
     uids = []
     if idtype not in (TWITTER, GITHUB, HACKERNEWS, WEB, COINBASE, KEYFINGERPRINT):
         raise KeybaseInvalidIdTypeError
-    url = _build_url('user/discover.json')
-    payload = {idtype : (',').join(ids), 'usernames_only' : 1, 'flatten' : 1}
-    jresponse = get_json_from_url(url, payload, method='get')
+    jresponse = _get_json_from_url(
+        _build_url('user/discover.json'),
+        {idtype : (',').join(ids), 'usernames_only' : 1, 'flatten' : 1},
+        method='get')
     if not 'status' in jresponse or not 'name' in jresponse['status']:
         raise KeybaseError('Malformed API response to user/discover.json request')
     if not 'matches' in jresponse:
@@ -100,6 +101,11 @@ def gpg(binary=None):
     Returns the full path to the gpg instance on this machine. It prefers
     ``gpg2`` but will search for ``gpg`` if it cannot find ``gpg2``.
 
+    >>> gpg()
+    '/usr/local/Cellar/gnupg2/2.0.26_1/bin/gpg2'
+    >>> gpg('gpg')
+    '/usr/local/Cellar/gnupg/1.4.18_1/bin/gpg'
+
     I implemented this because the :mod:`gnupg.GPG` class was having a
     hard time dealing with the fact that my Homebrew-installed GPG instance
     was a symlink in the ``/usr/local/bin`` directory instead of a real
@@ -112,10 +118,13 @@ def gpg(binary=None):
     On windows you shouldn't need to supply an extension to the command
     like ``.exe`` or ``.cmd`` -- it will figure it out for you.
 
-    Returns ``None`` if it cannot find a gpg2 or gpg instance in your PATH.
+    Returns ``None`` if it cannot find a gpg2 or gpg instance in your PATH:
+
+    >>> gpg('notagpgbinary')
+
     '''
     if binary:
-        search_list = list(binary)
+        search_list = [binary]
     else:
         search_list = ('gpg2', 'gpg')
     for _gpg in search_list:
@@ -130,6 +139,9 @@ def _which(executable, flags=os.X_OK):
 
     Search PATH for executable files with the given name.
 
+    >>> _which('ls')
+    ['/bin/ls']
+
     On newer versions of MS-Windows, the PATHEXT environment variable will be
     set to the list of file extensions for files considered executable. This
     will normally include things like ".EXE". This fuction will also find files
@@ -140,6 +152,15 @@ def _which(executable, flags=os.X_OK):
 
     Returns a list of the full paths to files found, in the order in which
     they were found.
+
+    If PATH is empty, returns an empty list:
+
+    >>> opath = os.environ['PATH']
+    >>> del os.environ['PATH']
+    >>> _which('ls')
+    []
+    >>> os.environ['PATH'] = opath
+
     '''
     result = []
     exts = [item for item in os.environ.get('PATHEXT', '').split(os.pathsep) if item]
@@ -165,6 +186,14 @@ def _build_url(endpoint):
     'https://keybase.io/_/api/1.0/foo.json'
     >>> _build_url('/foo/bar.json')
     'https://keybase.io/_/api/1.0/foo/bar.json'
+
+    Raises a KeybaseError if you pass an zero-length endpoint:
+
+    >>> _build_url('')
+    Traceback (most recent call last):
+    ...
+    KeybaseError: Missing URL endpoint for API call
+
     '''
     if len(endpoint) < 1:
         raise KeybaseError('Missing URL endpoint for API call')
@@ -176,30 +205,43 @@ def _build_url(endpoint):
     url = KEYBASE_BASE_URL + KEYBASE_API_VERSION + endpoint
     return url
 
-def get_json_from_url(url, params, method='get'):
+def _get_json_from_url(url, params, method='get'):
     '''
     Function to perform HTTP requests (get or post) with given parameters
     and return JSON formatted data.
 
     >>> salt_url = 'https://keybase.io/_/api/1.0/getsalt.json'
     >>> parameters = {'email_or_username': 'bpugh'}
-    >>> example = get_json_from_url(salt_url, parameters, method='get')
+    >>> example = _get_json_from_url(salt_url, parameters, method='get')
     >>> example['status'] == {u'code': 0, u'name': u'OK'}
     True
     >>> example['salt'] == u'e4725d30ed9df0082df4197596c4110c'
     True
     >>> example['login_session'] is not None
     True
+
+    Raises a ValueError if the method isn't one of 'get' or 'post':
+
+    >>> _get_json_from_url(salt_url, parameters, method='put')
+    Traceback (most recent call last):
+    ...
+    ValueError: Method must be 'get' or 'post'
+
+    Raises a KeybaseError if the response isn't well-formed Keybase JSON
+    response. It will raise an HTTPError for non 200-status responses.
     '''
     if method == 'get':
         method = requests.get
     elif method == 'post':
         method = requests.post
     else:
-        raise ValueError, "method must be 'get' or 'post'"
+        raise ValueError, "Method must be 'get' or 'post'"
     resp = method(url, params=params)
     resp.raise_for_status()
-    return resp.json()
+    jresponse = resp.json()
+    if not 'status' in jresponse or not 'name' in jresponse['status']:
+        raise KeybaseError('Malformed API response to %s request' % url)
+    return jresponse
 
 class Keybase(object):
     '''
@@ -244,6 +286,10 @@ class Keybase(object):
     def name(self):
         '''
         The full name of the person associated with this Keybase data.
+
+        >>> k = Keybase('irc')
+        >>> k.name
+        u'Ian Chesal'
         '''
         return self._section_getter('profile', 'full_name')
 
@@ -252,6 +298,10 @@ class Keybase(object):
         '''
         The geographical location of the person associated with this
         Keybase data.
+
+        >>> k = Keybase('irc')
+        >>> k.location
+        u'Bay Area, California'
         '''
         return self._section_getter('profile', 'location')
 
@@ -259,18 +309,12 @@ class Keybase(object):
     def username(self):
         '''
         The username of the person associated with this Keybase data.
+
+        >>> k = Keybase('irc')
+        >>> k.username
+        'irc'
         '''
         return self._username
-
-    @property
-    def is_bound(self):
-        '''
-        Returns True if this Keybase object instance is bound to a user or
-        False if it has yet to be associated with a specific username.
-        '''
-        if self._username and self._user_object and self.__lookup_performed:
-            return True
-        return False
 
     @property
     def public_keys(self):
@@ -320,15 +364,6 @@ class Keybase(object):
                     return self._user_object[section][key]
         return None
 
-    def _raise_unbound_error(self, message):
-        '''
-        Raises a :mod:`keybase.`KeybaseUnboundInstanceError` if the instance
-        isn't currently bound to a real user in the keybase.io data store.
-        Appends message to the error when it's raised.
-        '''
-        if not self.is_bound:
-            raise KeybaseUnboundInstanceError(message)
-
     def get_public_key(self, keyname='primary'):
         '''
         Returns a key named keyname as a :mod:`keybase.KeybasePublicKey` object
@@ -347,7 +382,6 @@ class Keybase(object):
         >>> kbase.get_public_key('thiskeydoesnotexist')
 
         '''
-        self._raise_unbound_error('Unable to fetch public key')
         key = None
         if keyname in self.public_keys:
             key_data = self._user_object['public_keys'][keyname]
@@ -367,11 +401,7 @@ class Keybase(object):
         verification with the primary key.
 
         For more information see :mod:`keybase.KeybasePublicKey.verify`.
-
-        If the instance hasn't been bound to a username yet it throws a
-        :mod:`keybase.KeybaseUnboundInstanceError`.
         '''
-        self._raise_unbound_error('Unable to fetch public key')
         pkey = self.get_public_key()
         return pkey.verify(
             data,
@@ -390,11 +420,7 @@ class Keybase(object):
         verification with the primary key.
 
         For more information see :mod:`keybase.KeybasePublicKey.verify_file`.
-
-        If the instance hasn't been bound to a username yet it throws a
-        :mod:`keybase.KeybaseUnboundInstanceError`.
         '''
-        self._raise_unbound_error('Unable to fetch public key')
         pkey = self.get_public_key()
         return pkey.verify_file(
             fname=fname,
@@ -414,11 +440,7 @@ class Keybase(object):
         verification with the primary key.
 
         For more information see :mod:`keybase.KeybasePublicKey.encrypt`.
-
-        If the instance hasn't been bound to a username yet it throws a
-        :mod:`keybase.KeybaseUnboundInstanceError`.
         '''
-        self._raise_unbound_error('Unable to fetch public key')
         pkey = self.get_public_key()
         return pkey.encrypt(
             data=data,
@@ -432,23 +454,16 @@ class Keybase(object):
 
         If the user cannot be found a :mod:`keybase.KeybaseUserNotFound`
         exception is raised:
+
+        If the object is already bound to a Keybase user a
+        :mod:`keybase.KeybaseLookupInvalidError` exception is raised.
         '''
         # If this object is already initialized then the user shouldn't
         # be calling this method a second time.
         if self.__lookup_performed:
             raise KeybaseLookupInvalidError(
                 'Keybase object already bound to username \'{}\''.format(self._username))
-        url = _build_url('user/lookup.json')
-        payload = {'username': username}
-        jresponse = get_json_from_url(url, payload, method='get')
-        # Pendantic searching of the status section of the API's JSON
-        # response. We could just leave it up to the 'them' section
-        # existing or not but future API changes may require that we
-        # handle the response differently based on the statue section
-        # in the response and the response codes therein so lets prepare
-        # for that now.
-        if not 'status' in jresponse or not 'name' in jresponse['status']:
-            raise KeybaseError('Malformed API response to user/lookup.json request')
+        jresponse = _get_json_from_url(_build_url('user/lookup.json'), {'username': username}, method='get')
         if jresponse['status']['name'] in ('NOT_FOUND', 'INPUT_ERROR'):
             raise KeybaseUserNotFound('User {} not found'.format(username))
         if not 'them' in jresponse:
@@ -511,10 +526,9 @@ class KeybaseAdmin(Keybase):
         >>> print kbase.salt
         5838c199c1b825a069185d5707302693
         '''
-        self._raise_unbound_error('Unable to retrieve salt from keybase.io')
         url = _build_url('getsalt.json')
         payload = {'email_or_username': self._username}
-        jresponse = get_json_from_url(url, payload, method='get')
+        jresponse = _get_json_from_url(url, payload, method='get')
         if not 'salt' in jresponse:
             raise KeybaseError('_get_salt(): No salt value returned for login {0}'.format(self._username))
         if not 'login_session' in jresponse:
@@ -537,7 +551,6 @@ class KeybaseAdmin(Keybase):
         If login fails the method throws a :mod:`keybase.KeybaseError` with all
         the details for why login failed in the message.
         '''
-        self._raise_unbound_error('Unable to log in to keybase.io')
         login_session = self._get_salt()
         pwh = scrypt.hash(passphrase, binascii.unhexlify(self.__salt), N=2**15, r=8, p=1, buflen=224)[192:224]
         hmac_pwh = hmac.new(pwh, base64.b64decode(login_session), hashlib.sha512)
@@ -545,7 +558,7 @@ class KeybaseAdmin(Keybase):
         payload = {'email_or_username': self._username,
                    'hmac_pwh': binascii.hexlify(hmac_pwh.digest()),
                    'login_session': login_session}
-        self.__user_object = get_json_from_url(url, payload, method='post')
+        self.__user_object = _get_json_from_url(url, payload, method='post')
         assert self.__user_object['session'], "Session doesn't exist in login response"
         self.__session_cookie = self.__user_object['session']
         return True

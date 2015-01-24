@@ -101,10 +101,10 @@ def gpg(binary=None):
     Returns the full path to the gpg instance on this machine. It prefers
     ``gpg2`` but will search for ``gpg`` if it cannot find ``gpg2``.
 
-    >>> gpg()
-    '/usr/local/Cellar/gnupg2/2.0.26_1/bin/gpg2'
-    >>> gpg('gpg')
-    '/usr/local/Cellar/gnupg/1.4.18_1/bin/gpg'
+    >>> len(gpg()) > 0
+    True
+    >>> len(gpg('gpg')) > 0
+    True
 
     I implemented this because the :mod:`gnupg.GPG` class was having a
     hard time dealing with the fact that my Homebrew-installed GPG instance

@@ -9,7 +9,7 @@ A Python implementation of the keybase.io API
 From [their website](https://keybase.io/):
 
 > Keybase is two things.
-> 
+>
 > 1. a public, publicly-auditable directory of keys and identity proofs
 > 1. a protocol (this API) for accessing the directory
 
@@ -33,10 +33,10 @@ See the [official documentation](http://keybase-python-api.readthedocs.org/en/la
 
 ### Get a User's Credentials
 
-	  kbase = keybase.Keybase('irc')
-	  primary_key = kbase.get_public_key()
-	  primary_key.kid
-	  u'0101f56ecf27564e5bec1c50250d09efe963cad3138d4dc7f4646c77f6008c1e23cf0a'
+    kbase = keybase.Keybase('irc')
+    primary_key = kbase.get_public_key()
+    primary_key.kid
+    u'0101f56ecf27564e5bec1c50250d09efe963cad3138d4dc7f4646c77f6008c1e23cf0a'
 
 You can use the `ascii` or `bundle` properties on the `primary_key` object in the above example to get an ASCII version of their primary public key, suitable for feeding in to a signature verification or encryption routine.
 
@@ -46,9 +46,9 @@ The `keybase.discover` method returns tuples of `keybase.Keybase` objects. It le
 
     kusers = keybase.discover(keybase.TWITTER, ['ircri']
     assert len(kusers) > 0
-	  primary_key = kusers[0].get_public_key()
-	  primary_key.kid
-	  u'0101f56ecf27564e5bec1c50250d09efe963cad3138d4dc7f4646c77f6008c1e23cf0a'
+    primary_key = kusers[0].get_public_key()
+    primary_key.kid
+    u'0101f56ecf27564e5bec1c50250d09efe963cad3138d4dc7f4646c77f6008c1e23cf0a'
 
 ### Use a User's Public Key to Verify the Signature on a Signed File
 
@@ -64,7 +64,7 @@ So there is one, binary, file `helloworld.txt.gpg` that contains both the data a
 
 Where the file was signed with a `gpg` command like so:
 
-	  gpg -u keybase.io/irc --detach-sign helloworld.txt
+    gpg -u keybase.io/irc --detach-sign helloworld.txt
 
 So there are two files:
 

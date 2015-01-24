@@ -46,50 +46,31 @@ class PyTest(TestCommand):
         errcode = pytest.main(self.test_args)
         sys.exit(errcode)
 
-class Tox(TestCommand):
-    def finalize_options(self):
-        TestCommand.finalize_options(self)
-        self.test_args = []
-        self.test_suite = True
-    def run_tests(self):
-        #import here, cause outside the eggs aren't loaded
-        import tox
-        errcode = tox.cmdline(self.test_args)
-        sys.exit(errcode)
-
 setup(
     name = 'keybase-api',
     version = keybase.__version__,
     url = 'https://github.com/ianchesal/keybase-python',
     license = 'Apache Software License, v2.0',
     author = 'Ian Chesal',
-    tests_require = ['tox'],
+    tests_require = ['nose>=1.0'],
     install_requires = [
         'astroid>=1.0.1',
         'cffi>=0.8.2',
-        'cov-core>=1.7',
-        'coverage>=3.7.1',
         'docutils>=0.11',
         'gnupg>=1.2.5',
         'Jinja2>=2.7.2',
         'logilab-common>=0.61.0',
         'MarkupSafe>=0.19',
-        'mock>=1.0.1',
         'py>=1.4.20',
         'pycparser>=2.10',
         'Pygments>=1.6',
-        'pylint>=1.1.0',
-        'pytest-cov>=1.6',
-        'pytest>=2.5.2',
         'requests>=2.2.1',
         'scrypt>=0.6.1',
         'Sphinx>=1.2.2',
         'sphinx_rtd_theme>=0.1.6',
-        'tox>=1.7.1',
-        'virtualenv>=1.11.4',
         'wsgiref>=0.1.2',
     ],
-    cmdclass = {'test': Tox},
+    cmdclass={'test': NoseTestCommand},
     author_email = 'ian.chesal@gmail.com',
     description = 'A Python implementation of the keybase.io API',
     long_description = long_description,

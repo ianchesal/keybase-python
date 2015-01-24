@@ -2,18 +2,14 @@
 # Based on what I found at: https://github.com/eventlet/eventlet/blob/master/.travis.yml
 language: python
 python:
-    - "2.7"
-env:
-    - TOX_ENV=py27
-    - TOX_ENV=py33
-matrix:
-    allow_failures:
-        - env: TOX_ENV=py33
+  - "2.7"
+  - "3.2"
+  - "3.3"
+  - "3.4"
 before_install:
-    - sudo apt-get update -qq
-    - sudo apt-get install -qq gnupg2
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq gnupg2
 install:
-    - pip install -r requirements.txt --use-mirrors
-    - pip install tox
+  - pip install -r requirements.txt --use-mirrors
 script:
-    - tox -e $TOX_ENV
+  - make test

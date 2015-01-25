@@ -13,15 +13,10 @@
 #pylint: disable=C0302
 #pylint: disable=W0142
 
-import base64
-import binascii
 import datetime
 import gnupg
-import hashlib
-import hmac
 import os
 import requests
-import scrypt
 import shutil
 import subprocess
 import tempfile
@@ -265,15 +260,10 @@ class Keybase(object):
     ...
     KeybaseUserNotFound: User abcdefghijklmno123notauserhahaha not found
 
-    To get the private view of the user you need to authenticate as
-    the user using the login() method after successfully looking the
-    user up in keybase.io.
-
     .. note::
 
         It does not allow you to manipulate the key data in the keybase.io data
-        store in any way. If you want to administer a user's keys please see
-        :mod:`keybase.KeybaseAdmin`.
+        store in any way.
 
     '''
     def __init__(self, username):
@@ -472,96 +462,6 @@ class Keybase(object):
         self._user_object = jresponse['them']
         self._username = username
         self.__lookup_performed = True
-
-class KeybaseAdmin(Keybase):
-    '''
-    Extends the :mod:`keybase.Keybase` class to add adminstrative functions
-    to what the Keybase class can already do. Allowing you to add keys,
-    revoke keys, sign keys and kill all active login sessions for a user.
-
-    In order to use this class you need to be in possession of the login
-    password for the keybase.io account.
-
-    .. note::
-
-        This class is still not implemented. The documentation you see here
-        is for future reference only.
-    '''
-
-    def __init__(self, username):
-        Keybase.__init__(self, username)
-        self.__salt = None
-        self.__session_cookie = None
-        self.__user_object = None
-
-    @property
-    def salt(self):
-        '''
-        The salt for this login session.
-        '''
-        return self.__salt
-
-    @property
-    def session(self):
-        '''
-        The session cookie that's tracking this login session.
-        '''
-        return self.__session_cookie
-
-    def _get_salt(self):
-        '''
-        The first round of the two round Keybase login procedure. This
-        function gets the salt stored for the user as well as a short-lived
-        random challenge string in the form of a login session ID.
-
-        The salt is stored in the object instance's _salt property while
-        the login session ID is returned by the function.
-
-        If the object has no username property an KeybaseError is thrown.
-
-        >>> kbase = KeybaseAdmin(username='irc')
-        >>> print kbase.salt
-        None
-        >>> login_session = kbase._get_salt()
-        >>> print kbase.salt
-        5838c199c1b825a069185d5707302693
-        '''
-        url = _build_url('getsalt.json')
-        payload = {'email_or_username': self._username}
-        jresponse = _get_json_from_url(url, payload, method='get')
-        if not 'salt' in jresponse:
-            raise KeybaseError('_get_salt(): No salt value returned for login {0}'.format(self._username))
-        if not 'login_session' in jresponse:
-            raise KeybaseError('_get_salt(): No login_session value returned for login {0}'.format(self._username))
-        self.__salt = jresponse['salt']
-        return jresponse['login_session']
-
-    def login(self, passphrase):
-        '''
-        Executes a two-round login procedure for a user using the supplied
-        passphrase to authenticate. The first round involves looking up the
-        user and getting their salt and a challenge in the form of a login
-        session ID. The second round involves computing the passphrase hash
-        and using it to answer the passphrase challenge.
-
-        If the login succeeds the method returns True and a session ID is
-        stored in the instance along with all the user object details returned
-        by the API when a login is successful.
-
-        If login fails the method throws a :mod:`keybase.KeybaseError` with all
-        the details for why login failed in the message.
-        '''
-        login_session = self._get_salt()
-        pwh = scrypt.hash(passphrase, binascii.unhexlify(self.__salt), N=2**15, r=8, p=1, buflen=224)[192:224]
-        hmac_pwh = hmac.new(pwh, base64.b64decode(login_session), hashlib.sha512)
-        url = _build_url('login.json')
-        payload = {'email_or_username': self._username,
-                   'hmac_pwh': binascii.hexlify(hmac_pwh.digest()),
-                   'login_session': login_session}
-        self.__user_object = _get_json_from_url(url, payload, method='post')
-        assert self.__user_object['session'], "Session doesn't exist in login response"
-        self.__session_cookie = self.__user_object['session']
-        return True
 
 class KeybasePublicKey(object):
     '''

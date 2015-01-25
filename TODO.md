@@ -1,17 +1,10 @@
 Core Features
 -------------
-* Offline support for Keybase class
-   * Allow merging keys in to a persistent keystore 
-   * Allow retrieving keys from persistent keystore without having to contact Keybase.io
-* Seaching for Keybase.io users
-   * Allow searching by user name, twitter handle, domain, email, etc.
-   * Probably depends on Keybase.io UI enhancements
+* Nothing at this point in time
 
 Long Term Features
 ------------------
-* Add a KeybaseAdmin class that extends Keybase for account/key administration
-   * Class is there now, it just needs login() and admin function added
-   * Finish implementing login()
+* Nothing at this point in time
 
 Testing
 -------

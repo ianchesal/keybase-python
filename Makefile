@@ -3,15 +3,18 @@
 
 .PHONY: docs release clean
 
+setup: clean
+	pip install --upgrade -r requirements.txt
+	pip install nose
+
 clean:
-	rm -rf .tox
 	rm -rf test/__pycache__
 	rm -rf docs/generated
 	rm -rf docs/_build
 	rm -rf keybase.egg-info
 
 test: clean
-		tox
+		nosetests
 
 docs:
 	sphinx-build -aE docs docs/generated

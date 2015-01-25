@@ -5,13 +5,18 @@ These perform comparisons against golden file patterns to ensure that tests
 are passing and not failing.
 '''
 
-import os
-import pytest
-import tempfile
-import shutil
-import gnupg
-import keybase
+#pylint: disable=R0902
+#pylint: disable=R0913
+#pylint: disable=C0301
+#pylint: disable=W0142
 
+import filecmp
+import gnupg
+import os
+import shutil
+import tempfile
+
+from keybase import keybase
 
 GPG_KEY_DATA = '''-----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: Keybase OpenPGP v0.1.1
@@ -72,7 +77,7 @@ def compare_string_to_file(somestring, somefile):
     Loads the contents of somefile in to a str variable and asserts that
     it's equal to whatever somestring points to.
 
-    This should only be used for really small comparisons. For big 
+    This should only be used for really small comparisons. For big
     comparisons you want to use:
 
         compare_stream_to_file(somestream, somefile)
@@ -97,19 +102,12 @@ def compare_string_to_file(somestring, somefile):
 def compare_files(leftfile, rightfile):
     '''
     Loads the contents of two files and compares them for absolute
-    equality. Does this in an most horribly memory inefficient manner for
-    now so don't use it for large file comparisons.
+    equality.
 
     Returns True if the string matches the file contents. Returns False
     if they do not match.
     '''
-    is_equal = False
-    with open(leftfile, 'r') as lfile:
-        with open(rightfile, 'r') as rfile:
-            lcontents = lfile.read()
-            rcontents = rfile.read()
-            is_equal = lcontents == rcontents
-    return is_equal
+    return filecmp.cmp(leftfile, rightfile, shallow=False)
 
 def test_public_key_downloading():
     '''
@@ -139,14 +137,14 @@ def test_public_key_gpg_integration():
     del gpg
     shutil.rmtree(tempdir)
 
-def test_verify_file_embedded_signature():
+def test_verify_file_embedded_sig():
     '''
     Verifies the signature on an embedded, signed file. This is a file signed
     with:
 
         gpg -u keybase.io/irc --sign helloworld.txt
 
-    So it's binary output and prefixed with .gpg.
+    So it's binary output and suffixed with .gpg.
     '''
     k = keybase.Keybase('irc')
     pkey = k.get_public_key()
@@ -166,9 +164,9 @@ def test_verify_file_embedded_signature():
     del gpg
     shutil.rmtree(tempdir)
 
-def test_verify_file_detached_signature():
+def test_verify_file_detached_sig():
     '''
-    Verifies the signature on an embedded, signed file. This is a file signed
+    Verifies the signature on a detatched, signed file. This is a file signed
     with:
 
         gpg -u keybase.io/irc --detach-sign helloworld.txt
@@ -189,12 +187,16 @@ def test_verify_file_detached_signature():
     tempdir = tempfile.mkdtemp(suffix='.keybase-test')
     gpg = gnupg.GPG(homedir=tempdir, verbose=False, use_agent=False, binary=keybase.gpg())
     gpg.import_keys(GPG_KEY_DATA)
-    vobj = gpg.verify_file(fname, fsig)
+    with open(fname, 'rb') as fobj:
+        vobj = gpg.verify_file(fobj, fsig)
     assert vobj.valid
     del gpg
     shutil.rmtree(tempdir)
 
 def test_encrypt_string_data():
+    '''
+    Verifies that string data can be encrypted with the library.
+    '''
     k = keybase.Keybase('irc')
     pkey = k.get_public_key()
     instring = 'Hello, world!'
@@ -225,10 +227,32 @@ def test_gpg_encrypt():
     del gpg
     shutil.rmtree(tempdir)
 
+def test_discover():
+    '''
+    Tests the discover() method to make sure it functions.
+    '''
+    users = keybase.discover(keybase.TWITTER, ['ircri'])
+    assert len(users) > 0
+    k = users[0]
+    assert type(k).__name__ == 'Keybase'
+    assert k.username == 'irc'
+    pkey = k.get_public_key()
+    instring = 'Hello, world!'
+    encrypted = pkey.encrypt(instring)
+    assert encrypted
+    assert not encrypted.isspace()
+    assert encrypted != instring
+    encrypted2 = k.encrypt(instring)
+    assert encrypted2
+    assert not encrypted2.isspace()
+    assert encrypted2 != instring
+
 # You can use this stuff for debugging interactively:
 #import logging
 #logging.basicConfig(level=logging.DEBUG)
 #test_encrypt_string_data()
 #test_gpg_encrypt()
-#test_verify_file_embedded_signature()
-#test_verify_file_detached_signature()
+#test_verify_file_embedded_sig()
+#test_verify_file_detached_sig()
+#test_discover()
+

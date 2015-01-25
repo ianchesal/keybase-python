@@ -1,4 +1,11 @@
+Core Features
+-------------
+* Nothing at this point in time
+
+Long Term Features
+------------------
+* Nothing at this point in time
+
+Testing
+-------
 * Mock the results calls to the live API in the doctests embedded in the main class
-* Add a KeybaseAdmin class that extends Keybase for account/key administration
-   * Class is there now, it just needs login() and admin function added
-   * Finish implementing login()

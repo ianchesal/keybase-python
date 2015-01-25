@@ -9,7 +9,7 @@ A Python implementation of the keybase.io API
 From [their website](https://keybase.io/):
 
 > Keybase is two things.
-> 
+>
 > 1. a public, publicly-auditable directory of keys and identity proofs
 > 1. a protocol (this API) for accessing the directory
 
@@ -21,7 +21,11 @@ The official documentation for the project can be found here: http://keybase-pyt
 
 ### Installation
 
-    pip install keybase-api
+    [sudo] pip install keybase-api
+
+## Use
+
+    from keybase import keybase
 
 ## Examples
 
@@ -29,12 +33,22 @@ See the [official documentation](http://keybase-python-api.readthedocs.org/en/la
 
 ### Get a User's Credentials
 
-	kbase = Keybase('irc')
-	primary_key = kbase.get_public_key()
-	primary_key.kid
-	u'0101f56ecf27564e5bec1c50250d09efe963cad3138d4dc7f4646c77f6008c1e23cf0a'
+    kbase = keybase.Keybase('irc')
+    primary_key = kbase.get_public_key()
+    primary_key.kid
+    u'0101f56ecf27564e5bec1c50250d09efe963cad3138d4dc7f4646c77f6008c1e23cf0a'
 
 You can use the `ascii` or `bundle` properties on the `primary_key` object in the above example to get an ASCII version of their primary public key, suitable for feeding in to a signature verification or encryption routine.
+
+### Find Users by Their Twitter Handles
+
+The `keybase.discover` method returns tuples of `keybase.Keybase` objects. It lets you find Keybase users by other indentifiers such as their Twitter handle, Github username, website domain, etc. For a completely list of available search criteria please see the [official documentation](http://keybase-python-api.readthedocs.org/en/latest/).
+
+    kusers = keybase.discover(keybase.TWITTER, ['ircri']
+    assert len(kusers) > 0
+    primary_key = kusers[0].get_public_key()
+    primary_key.kid
+    u'0101f56ecf27564e5bec1c50250d09efe963cad3138d4dc7f4646c77f6008c1e23cf0a'
 
 ### Use a User's Public Key to Verify the Signature on a Signed File
 
@@ -44,13 +58,13 @@ Where the file was signed with a `gpg` command like so:
 
 So there is one, binary, file `helloworld.txt.gpg` that contains both the data and the signature on the data to verify.
 
-    kbase = Keybase('irc')
+    kbase = keybase.Keybase('irc')
     verified = kbase.verify_file('helloworld.txt.gpg')
     assert verified
 
 Where the file was signed with a `gpg` command like so:
 
-	gpg -u keybase.io/irc --detach-sign helloworld.txt
+    gpg -u keybase.io/irc --detach-sign helloworld.txt
 
 So there are two files:
 
@@ -59,7 +73,7 @@ So there are two files:
 
 In this case:
 
-    kbase = Keybase('irc')
+    kbase = keybase.Keybase('irc')
     fname = 'helloworld.txt'
     sigfname = 'helloworld.txt.sig'
     verified = kbase.verify_file(fname, sigfname)
@@ -69,7 +83,7 @@ In this case:
 
 Given some `str` formatted data, you can create an ASCII armored, encrypted `str` representation of that data suitable for sending to the user. Only someone with the private key will be able to decrypt this data.
 
-    kbase = Keybase('irc')
+    kbase = keybase.Keybase('irc')
     instring = 'Hello, world!'
     encrypted = kbase.encrypt(instring)
     assert encrypted
@@ -78,13 +92,28 @@ Given some `str` formatted data, you can create an ASCII armored, encrypted `str
 
 ## Development
 
+### VirtualEnv
+
+I highly recommend you develop using VirtualEnv. It keeps dependency stuff somewhat sane. The `.gitignore` file is set expecting you to keep your virtual environment in `.venv` like so:
+
+    [sudo] pip install virtualenv
+    cd ~/code
+    git clone git@github.com:ianchesal/keybase-python.git
+    cd keybase-python
+    virtualenv .venv
+    source .venv/bin/activate
+    ...
+    <do your development work now>
+    ...
+    deactivate
+
 ### GnuPG
 
 Most of the testing was done against GnuPG:
 
     > gpg2 --version
-    gpg (GnuPG) 2.0.22
-    libgcrypt 1.6.1
+    gpg (GnuPG) 2.0.26
+    libgcrypt 1.6.2
     Copyright (C) 2013 Free Software Foundation, Inc.
     License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
     This is free software: you are free to change and redistribute it.
@@ -92,7 +121,7 @@ Most of the testing was done against GnuPG:
 
     Home: ~/.gnupg
     Supported algorithms:
-    Pubkey: RSA, ELG, DSA, ECC, ?
+    Pubkey: RSA, RSA, RSA, ELG, DSA
     Cipher: IDEA, 3DES, CAST5, BLOWFISH, AES, AES192, AES256, TWOFISH,
             CAMELLIA128, CAMELLIA192, CAMELLIA256
     Hash: MD5, SHA1, RIPEMD160, SHA256, SHA384, SHA512, SHA224

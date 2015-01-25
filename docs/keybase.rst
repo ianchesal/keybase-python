@@ -5,8 +5,7 @@ The Keybase API
 Keybase Common Methods
 ----------------------
 
-The following common, convenience methods exist to make it easier to work with
-GnuPG and the Keybase API in your code.
+.. autofunction:: keybase.discover
 
 .. autofunction:: keybase.gpg
 
@@ -24,20 +23,6 @@ The ``KeybasePublicKey`` Class -- Public Key Records from the Keybase.io Data St
 
 .. autoclass:: keybase.KeybasePublicKey
   :members:
-
-The ``KeybaseAdmin`` Class -- Manipulating User's Public Key Data
------------------------------------------------------------------
-
-The ``KeybaseAdmin`` class lets you authenticate as a user to the Keybase.io public data store and manipulate the stored public keys for the user. You can add and revoke keys, create new keys and validate other user's keys.
-
-.. note::
-
-  This class is currently not implemented! Anything you read here is planned, not real, at this point.
-
-.. autoclass:: keybase.KeybaseAdmin
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 The Keybase Error Classes
 -------------------------

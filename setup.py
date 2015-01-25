@@ -52,6 +52,7 @@ setup(
     url = 'https://github.com/ianchesal/keybase-python',
     license = 'Apache Software License, v2.0',
     author = 'Ian Chesal',
+    setup_requires=['nose>=1.0'],
     tests_require = ['nose>=1.0'],
     install_requires = [
         'astroid>=1.0.1',
@@ -70,14 +71,13 @@ setup(
         'sphinx_rtd_theme>=0.1.6',
         'wsgiref>=0.1.2',
     ],
-    cmdclass={'test': NoseTestCommand},
     author_email = 'ian.chesal@gmail.com',
     description = 'A Python implementation of the keybase.io API',
     long_description = long_description,
     packages = ['keybase'],
     include_package_data = True,
     platforms = 'any',
-    test_suite = 'keybase.test.test_keybase',
+    test_suite = 'nose.collector',
     classifiers = [
         'Programming Language :: Python',
         'Development Status :: 4 - Beta',

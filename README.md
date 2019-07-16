@@ -5,12 +5,15 @@
 ```
 Begin Transmission
 
-
 THIS PROJECT HAS GONE EOL!!!
 
-I no longer maintain this as an active library. It was an interesting experiment but the keybase CLI surpassed it and is a whole lot nicer to integrate with than using this API interface wrapper. I recommend that approach. You can read about the deprecation [here](https://mostlywrong.net/on-the-future-of-the-keybase-python-api/).
+I no longer maintain this as an active library. It was an interesting experiment
+but the keybase CLI surpassed it and is a whole lot nicer to integrate with than
+using this API interface wrapper. I recommend that approach. You can read about
+the deprecation [here](https://mostlywrong.net/on-the-future-of-the-keybase-python-api/).
 
-On July 15, 2019 I deleted this package from the PyPi repository because it had become incompatible with Python >= 3.3.
+On July 15, 2019 I deleted this package from the PyPi repository because it had
+become incompatible with Python >= 3.3.
 
 End Transmission
 ```

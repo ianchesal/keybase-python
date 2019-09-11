@@ -15,6 +15,8 @@ the deprecation [here](https://mostlywrong.net/on-the-future-of-the-keybase-pyth
 On July 15, 2019 I deleted this package from the PyPi repository because it had
 become incompatible with Python >= 3.3.
 
+This repository is now archived on GitHub.
+
 End Transmission
 ```
 
